@@ -1,7 +1,7 @@
 export type AdminSession = {
   adminId: string
   displayName: string
-  accessToken: string
+  email: string
 }
 
 export type AuthState =
@@ -12,4 +12,6 @@ export type AuthState =
 export type AuthContextValue = AuthState & {
   beginSession: (session: AdminSession) => void
   clearSession: () => void
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
