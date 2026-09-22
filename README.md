@@ -69,6 +69,7 @@ npm run preview
 - `/products`, `/products/new`, `/products/:productId`
 - `/service-areas`, `/service-areas/new`, `/service-areas/:serviceAreaId`
 - `/orders` — honest empty state until the order domain exists
+- `/sessions` — list and revoke operator refresh sessions
 
 Frontend guards only improve navigation. The API enforces the admin role on
 every mutation.

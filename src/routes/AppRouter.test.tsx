@@ -1,10 +1,21 @@
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '../features/auth/AuthProvider'
 import type { AdminSession } from '../features/auth/auth.types'
 import { AppRouter } from './AppRouter'
+
+vi.mock('../features/auth/sessionService', async () => {
+  const actual = await vi.importActual<typeof import('../features/auth/sessionService')>(
+    '../features/auth/sessionService',
+  )
+  return {
+    ...actual,
+    listAdminSessions: vi.fn(async () => []),
+  }
+})
 
 function renderRouter({
   path = '/',
@@ -13,12 +24,17 @@ function renderRouter({
   path?: string
   session?: AdminSession | null
 } = {}) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
-    <AuthProvider sessionLoader={() => Promise.resolve(session)}>
-      <MemoryRouter initialEntries={[path]}>
-        <AppRouter />
-      </MemoryRouter>
-    </AuthProvider>,
+    <QueryClientProvider client={client}>
+      <AuthProvider sessionLoader={() => Promise.resolve(session)}>
+        <MemoryRouter initialEntries={[path]}>
+          <AppRouter />
+        </MemoryRouter>
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 }
 
@@ -48,6 +64,21 @@ describe('AppRouter', () => {
       screen.getByRole('navigation', { name: 'Primary navigation' }),
     ).toBeInTheDocument()
     expect(screen.getByText('No order metrics yet')).toBeInTheDocument()
+  })
+
+  it('renders the operator device session screen', async () => {
+    renderRouter({
+      path: '/sessions',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Signed-in devices' }),
+    ).toBeInTheDocument()
   })
 
   it('renders the honest empty orders screen', async () => {

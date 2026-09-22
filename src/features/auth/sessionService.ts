@@ -64,3 +64,27 @@ export async function logoutAdmin(): Promise<void> {
     throw error
   }
 }
+
+export type AdminDeviceSession = {
+  sessionId: string
+  current: boolean
+  deviceId: string | null
+  userAgent: string | null
+  createdAt: string
+  lastUsedAt: string | null
+  expiresAt: string
+}
+
+export async function listAdminSessions(): Promise<AdminDeviceSession[]> {
+  const response = await apiClient.get<Envelope<{ sessions: AdminDeviceSession[] }>>(
+    '/auth/admin/sessions',
+  )
+  return response.data.data.sessions
+}
+
+export async function revokeAdminSession(sessionId: string): Promise<{ revoked: true; current: boolean }> {
+  const response = await apiClient.delete<Envelope<{ revoked: true; current: boolean }>>(
+    `/auth/admin/sessions/${encodeURIComponent(sessionId)}`,
+  )
+  return response.data.data
+}
