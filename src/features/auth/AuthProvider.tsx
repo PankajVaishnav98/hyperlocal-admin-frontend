@@ -13,7 +13,7 @@ import {
 import { queryClient } from '../../services/queryClient'
 import { AuthContext } from './authContext'
 import type { AdminSession, AuthState } from './auth.types'
-import { restoreAdminSession } from './sessionService'
+import { loginAdmin, logoutAdmin, restoreAdminSession } from './sessionService'
 
 type AuthProviderProps = PropsWithChildren<{
   sessionLoader?: () => Promise<AdminSession | null>
@@ -38,13 +38,25 @@ export function AuthProvider({
     setState({ status: 'authenticated', session })
   }, [])
 
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const session = await loginAdmin(email, password)
+      beginSession(session)
+    },
+    [beginSession],
+  )
+
+  const logout = useCallback(async () => {
+    await logoutAdmin()
+    clearSession()
+  }, [clearSession])
+
   useEffect(() => {
     let active = true
 
     void sessionLoader()
       .then((session) => {
         if (!active) return
-
         setState(
           session
             ? { status: 'authenticated', session }
@@ -63,10 +75,7 @@ export function AuthProvider({
   }, [sessionLoader])
 
   useEffect(() => {
-    setAccessTokenProvider(() =>
-      state.status === 'authenticated' ? state.session.accessToken : null,
-    )
-
+    setAccessTokenProvider(() => null)
     return () => {
       setAccessTokenProvider(() => null)
     }
@@ -75,8 +84,8 @@ export function AuthProvider({
   useEffect(() => subscribeToUnauthorized(clearSession), [clearSession])
 
   const value = useMemo(
-    () => ({ ...state, beginSession, clearSession }),
-    [beginSession, clearSession, state],
+    () => ({ ...state, beginSession, clearSession, login, logout }),
+    [beginSession, clearSession, login, logout, state],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

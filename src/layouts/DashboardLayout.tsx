@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import {
   LayoutDashboard,
+  LogOut,
+  MapPinned,
   Menu,
+  Package,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
+  Tags,
   X,
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -11,6 +16,14 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Badge, BrandMark, Button } from '../components/ui/Primitives'
 import { useAuth } from '../features/auth/authContext'
 import { cn } from '../utils/cn'
+
+const links = [
+  { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/categories', label: 'Categories', icon: Tags },
+  { to: '/products', label: 'Products', icon: Package },
+  { to: '/service-areas', label: 'Service areas', icon: MapPinned },
+  { to: '/orders', label: 'Orders', icon: Receipt },
+]
 
 function Navigation({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
   return (
@@ -20,25 +33,31 @@ function Navigation({ collapsed = false, onNavigate }: { collapsed?: boolean; on
           Workspace
         </p>
       )}
-      <NavLink
-        to="/"
-        end
-        onClick={onNavigate}
-        aria-label={collapsed ? 'Foundation dashboard' : undefined}
-        title={collapsed ? 'Foundation dashboard' : undefined}
-        className={({ isActive }) =>
-          cn(
-            'mt-2 flex h-11 items-center rounded-xl text-sm font-semibold transition-colors',
-            collapsed ? 'justify-center px-0' : 'gap-3 px-3',
-            isActive
-              ? 'bg-ink-950 text-white shadow-md shadow-ink-950/10'
-              : 'text-ink-600 hover:bg-ink-100 hover:text-ink-950',
-          )
-        }
-      >
-        <LayoutDashboard aria-hidden="true" className="size-4.5 shrink-0" />
-        {!collapsed && <span>Foundation</span>}
-      </NavLink>
+      <ul className="mt-2 space-y-1">
+        {links.map(({ to, label, icon: Icon, end }) => (
+          <li key={to}>
+            <NavLink
+              to={to}
+              end={end}
+              onClick={onNavigate}
+              aria-label={collapsed ? label : undefined}
+              title={collapsed ? label : undefined}
+              className={({ isActive }) =>
+                cn(
+                  'flex h-11 items-center rounded-xl text-sm font-semibold transition-colors',
+                  collapsed ? 'justify-center px-0' : 'gap-3 px-3',
+                  isActive
+                    ? 'bg-ink-950 text-white shadow-md shadow-ink-950/10'
+                    : 'text-ink-600 hover:bg-ink-100 hover:text-ink-950',
+                )
+              }
+            >
+              <Icon aria-hidden="true" className="size-4.5 shrink-0" />
+              {!collapsed && <span>{label}</span>}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
     </nav>
   )
 }
@@ -49,6 +68,7 @@ export function DashboardLayout() {
   const auth = useAuth()
   const displayName =
     auth.status === 'authenticated' ? auth.session.displayName : 'Administrator'
+  const email = auth.status === 'authenticated' ? auth.session.email : ''
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink-950">
@@ -153,14 +173,14 @@ export function DashboardLayout() {
               )}
             </Button>
             <Badge className="hidden sm:inline-flex" tone="neutral">
-              Foundation
+              Operator
             </Badge>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-ink-900">{displayName}</p>
-              <p className="text-xs text-ink-500">Admin session</p>
+              <p className="text-xs text-ink-500">{email || 'Admin session'}</p>
             </div>
             <div
               className="grid size-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-800"
@@ -168,6 +188,17 @@ export function DashboardLayout() {
             >
               {displayName.charAt(0).toUpperCase()}
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Sign out"
+              onClick={() => {
+                void auth.logout()
+              }}
+            >
+              <LogOut aria-hidden="true" className="size-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
           </div>
         </header>
 

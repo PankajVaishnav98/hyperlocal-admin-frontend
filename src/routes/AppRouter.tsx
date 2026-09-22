@@ -2,9 +2,16 @@ import { Route, Routes } from 'react-router-dom'
 
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { DashboardLayout } from '../layouts/DashboardLayout'
+import { CategoriesPage } from '../pages/CategoriesPage'
+import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { OrdersPage } from '../pages/OrdersPage'
+import { ProductFormPage } from '../pages/ProductFormPage'
+import { ProductsPage } from '../pages/ProductsPage'
+import { ServiceAreaFormPage } from '../pages/ServiceAreaFormPage'
+import { ServiceAreasPage } from '../pages/ServiceAreasPage'
 
 export function AppRouter() {
   return (
@@ -13,6 +20,16 @@ export function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="categories/new" element={<CategoryFormPage />} />
+          <Route path="categories/:categoryId" element={<CategoryFormPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products/new" element={<ProductFormPage />} />
+          <Route path="products/:productId" element={<ProductFormPage />} />
+          <Route path="service-areas" element={<ServiceAreasPage />} />
+          <Route path="service-areas/new" element={<ServiceAreaFormPage />} />
+          <Route path="service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
+          <Route path="orders" element={<OrdersPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

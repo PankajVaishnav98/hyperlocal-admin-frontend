@@ -1,5 +1,7 @@
+import { useState, type FormEvent } from 'react'
 import { LockKeyhole, ShieldCheck } from 'lucide-react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
+import { z } from 'zod'
 
 import { LoadingState } from '../components/states/SystemStates'
 import {
@@ -9,10 +11,24 @@ import {
   Card,
   Input,
 } from '../components/ui/Primitives'
+import { ApiError } from '../api/errors'
 import { useAuth } from '../features/auth/authContext'
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Enter a valid email address'),
+  password: z.string().min(1, 'Enter your password'),
+})
 
 export function LoginPage() {
   const auth = useAuth()
+  const location = useLocation()
+  const from =
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   if (auth.status === 'loading') {
     return (
@@ -25,7 +41,35 @@ export function LoginPage() {
   }
 
   if (auth.status === 'authenticated') {
-    return <Navigate to="/" replace />
+    return <Navigate to={from} replace />
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormError(null)
+    const parsed = loginSchema.safeParse({ email, password })
+    if (!parsed.success) {
+      const next: { email?: string; password?: string } = {}
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0]
+        if (key === 'email' || key === 'password') next[key] = issue.message
+      }
+      setFieldErrors(next)
+      return
+    }
+    setFieldErrors({})
+    setSubmitting(true)
+    try {
+      await auth.login(parsed.data.email, parsed.data.password)
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Sign-in failed. Check your connection and try again.'
+      setFormError(message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -46,8 +90,8 @@ export function LoginPage() {
             A clear foundation for dependable local operations.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-ink-300">
-            Built for focused workflows, accessible controls, and secure
-            server-authoritative administration.
+            Catalog, inventory, pricing, and service areas are managed here with
+            server-enforced administrator access.
           </p>
         </div>
         <p className="text-sm text-ink-400">Hyperlocal administration</p>
@@ -69,41 +113,37 @@ export function LoginPage() {
               Admin sign in
             </h2>
             <p className="mt-2 text-sm leading-6 text-ink-600">
-              Secure admin authentication will be enabled when the backend
-              identity flow is delivered.
+              Use your provisioned operator email and password. Sessions are stored
+              in HttpOnly cookies.
             </p>
 
-            <div className="mt-7 space-y-5" aria-label="Sign-in preview">
+            <form className="mt-7 space-y-5" onSubmit={(event) => void onSubmit(event)}>
               <Input
                 label="Email address"
                 type="email"
                 autoComplete="username"
-                placeholder="Backend authentication required"
-                disabled
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                error={fieldErrors.email}
               />
               <Input
                 label="Password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="Not available in Phase 1"
-                disabled
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                error={fieldErrors.password}
               />
-              <Button className="w-full" size="lg" disabled>
+              {formError && (
+                <p className="rounded-xl border border-danger-50 bg-danger-50 px-3 py-2 text-sm text-danger-700" role="alert">
+                  {formError}
+                </p>
+              )}
+              <Button className="w-full" size="lg" type="submit" loading={submitting}>
                 <LockKeyhole aria-hidden="true" className="size-4" />
-                Sign-in unavailable
+                Sign in
               </Button>
-            </div>
-
-            <div className="mt-6 rounded-xl border border-warning-200 bg-warning-50 p-4">
-              <p className="text-sm font-semibold text-warning-900">
-                Backend identity required
-              </p>
-              <p className="mt-1 text-xs leading-5 text-warning-800">
-                No demo credentials or client-only authentication are provided.
-                Admin login, refresh, and logout arrive with the server-enforced
-                identity implementation.
-              </p>
-            </div>
+            </form>
           </Card>
         </div>
       </section>

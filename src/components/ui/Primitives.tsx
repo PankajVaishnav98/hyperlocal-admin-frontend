@@ -4,6 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
   type ReactNode,
 } from 'react'
 import { LoaderCircle } from 'lucide-react'
@@ -165,6 +166,51 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   },
 )
 Input.displayName = 'Input'
+
+type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string
+  helperText?: string
+  error?: string
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ id, label, helperText, error, className, ...props }, ref) => {
+    const generatedId = useId()
+    const inputId = id ?? generatedId
+    const descriptionId = `${inputId}-description`
+
+    return (
+      <div className="space-y-2">
+        <label htmlFor={inputId} className="block text-sm font-semibold text-ink-800">
+          {label}
+        </label>
+        <textarea
+          ref={ref}
+          id={inputId}
+          className={cn(
+            'min-h-24 w-full rounded-xl border border-ink-200 bg-white px-3.5 py-3 text-sm text-ink-950',
+            'placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-3 focus:ring-brand-100',
+            'disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500',
+            error && 'border-danger-600 focus:border-danger-600 focus:ring-danger-50',
+            className,
+          )}
+          aria-invalid={Boolean(error) || undefined}
+          aria-describedby={helperText || error ? descriptionId : undefined}
+          {...props}
+        />
+        {(error || helperText) && (
+          <p
+            id={descriptionId}
+            className={cn('text-xs leading-5', error ? 'text-danger-600' : 'text-ink-500')}
+          >
+            {error ?? helperText}
+          </p>
+        )}
+      </div>
+    )
+  },
+)
+Textarea.displayName = 'Textarea'
 
 export function Skeleton({
   className,

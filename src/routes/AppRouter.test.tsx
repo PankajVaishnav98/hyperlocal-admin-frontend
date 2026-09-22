@@ -29,9 +29,7 @@ describe('AppRouter', () => {
     expect(
       await screen.findByRole('heading', { name: 'Admin sign in' }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Sign-in unavailable' }),
-    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
   })
 
   it('renders the dashboard shell for an authenticated session', async () => {
@@ -39,19 +37,33 @@ describe('AppRouter', () => {
       session: {
         adminId: 'admin-1',
         displayName: 'Operations Admin',
-        accessToken: 'in-memory-test-token',
+        email: 'ops@hyperlocal.test',
       },
     })
 
     expect(
-      await screen.findByRole('heading', { name: 'Operations workspace' }),
+      await screen.findByRole('heading', { name: 'Catalog and coverage' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: 'Primary navigation' }),
     ).toBeInTheDocument()
+    expect(screen.getByText('No order metrics yet')).toBeInTheDocument()
+  })
+
+  it('renders the honest empty orders screen', async () => {
+    renderRouter({
+      path: '/orders',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
     expect(
-      screen.getByText('No business modules enabled'),
+      await screen.findByRole('heading', { name: 'Orders' }),
     ).toBeInTheDocument()
+    expect(screen.getByText('No orders to operate')).toBeInTheDocument()
   })
 
   it('renders a not-found page for unknown locations', () => {

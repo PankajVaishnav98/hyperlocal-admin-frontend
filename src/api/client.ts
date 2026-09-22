@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 import { normalizeApiError } from './errors'
 
@@ -11,6 +11,7 @@ type AccessTokenProvider = () => string | null
 
 const unauthorizedListeners = new Set<UnauthorizedListener>()
 let getAccessToken: AccessTokenProvider = () => null
+let refreshInFlight: Promise<void> | null = null
 
 export const apiClient = axios.create({
   baseURL: apiBaseUrl,
@@ -19,43 +20,67 @@ export const apiClient = axios.create({
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
+    'x-hyperlocal-client': 'web',
   },
 })
 
+function isAuthPath(url: string | undefined): boolean {
+  const path = url ?? ''
+  return (
+    path.includes('/auth/admin/login') ||
+    path.includes('/auth/admin/refresh') ||
+    path.includes('/auth/admin/logout')
+  )
+}
+
 apiClient.interceptors.request.use((config) => {
   const accessToken = getAccessToken()
-
   if (accessToken) {
     config.headers.set('Authorization', `Bearer ${accessToken}`)
   }
-
   return config
 })
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    const normalizedError = normalizeApiError(error)
+  async (error: unknown) => {
+    const axiosError = error as AxiosError
+    const original = axiosError.config as
+      | (InternalAxiosRequestConfig & { _retried?: boolean })
+      | undefined
+    const status = axiosError.response?.status
 
-    if (normalizedError.status === 401) {
-      unauthorizedListeners.forEach((listener) => listener())
+    if (
+      status === 401 &&
+      original &&
+      !original._retried &&
+      !isAuthPath(original.url)
+    ) {
+      original._retried = true
+      try {
+        refreshInFlight ??= apiClient.post('/auth/admin/refresh', {}).then(() => undefined)
+        await refreshInFlight
+        refreshInFlight = null
+        return apiClient(original)
+      } catch {
+        refreshInFlight = null
+      }
     }
 
+    const normalizedError = normalizeApiError(error)
+    if (normalizedError.status === 401 && !isAuthPath(original?.url)) {
+      unauthorizedListeners.forEach((listener) => listener())
+    }
     return Promise.reject(normalizedError)
   },
 )
 
-/**
- * Phase 2 auth can provide its short-lived, in-memory access token here.
- * Refresh credentials remain server-managed Secure/HttpOnly cookies.
- */
 export function setAccessTokenProvider(provider: AccessTokenProvider) {
   getAccessToken = provider
 }
 
 export function subscribeToUnauthorized(listener: UnauthorizedListener) {
   unauthorizedListeners.add(listener)
-
   return () => {
     unauthorizedListeners.delete(listener)
   }
