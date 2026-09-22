@@ -28,7 +28,7 @@ npm run dev
 `VITE_API_URL` is the only client environment variable:
 
 ```dotenv
-VITE_API_URL=http://localhost:4000/api/v1
+VITE_API_URL=http://localhost:3000/api/v1
 ```
 
 All `VITE_*` values are public at build time and must never contain secrets.

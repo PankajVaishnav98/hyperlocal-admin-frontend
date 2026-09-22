@@ -4,7 +4,7 @@ import { normalizeApiError } from './errors'
 
 const apiBaseUrl =
   import.meta.env.VITE_API_URL?.trim() ||
-  (import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '/api/v1')
+  (import.meta.env.DEV ? 'http://localhost:3000/api/v1' : '/api/v1')
 
 type UnauthorizedListener = () => void
 type AccessTokenProvider = () => string | null
