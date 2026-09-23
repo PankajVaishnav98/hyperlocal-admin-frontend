@@ -5,6 +5,8 @@ import { DashboardLayout } from '../layouts/DashboardLayout'
 import { CategoriesPage } from '../pages/CategoriesPage'
 import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
+import { HomeBannerFormPage } from '../pages/HomeBannerFormPage'
+import { HomeBannersPage } from '../pages/HomeBannersPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { OrdersPage } from '../pages/OrdersPage'
@@ -28,6 +30,9 @@ export function AppRouter() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:productId" element={<ProductFormPage />} />
+          <Route path="home-banners" element={<HomeBannersPage />} />
+          <Route path="home-banners/new" element={<HomeBannerFormPage />} />
+          <Route path="home-banners/:bannerId" element={<HomeBannerFormPage />} />
           <Route path="service-areas" element={<ServiceAreasPage />} />
           <Route path="service-areas/new" element={<ServiceAreaFormPage />} />
           <Route path="service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />

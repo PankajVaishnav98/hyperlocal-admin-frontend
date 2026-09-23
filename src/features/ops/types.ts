@@ -84,3 +84,19 @@ export type AdminOrder = {
   placedAt: string
   cancelledAt: string | null
 }
+
+export type HomeBannerLinkType = 'none' | 'category' | 'product'
+
+export type AdminHomeBanner = {
+  id: string
+  imageUrl: string
+  title: string
+  subtitle: string
+  linkType: HomeBannerLinkType
+  categoryId?: string
+  productId?: string
+  sortOrder: number
+  isActive: boolean
+}
+
+export type HomeBannerPayload = Omit<AdminHomeBanner, 'id'>

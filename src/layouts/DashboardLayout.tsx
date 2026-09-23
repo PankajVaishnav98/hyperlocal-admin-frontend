@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  ImagePlus,
   LayoutDashboard,
   LogOut,
   MapPinned,
@@ -22,6 +23,7 @@ const links = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/home-banners', label: 'Home banners', icon: ImagePlus },
   { to: '/service-areas', label: 'Service areas', icon: MapPinned },
   { to: '/orders', label: 'Orders', icon: Receipt },
   { to: '/sessions', label: 'Devices', icon: Shield },

@@ -7,6 +7,8 @@ import type {
   ServiceArea,
   ServiceAreaPayload,
   AdminOrder,
+  AdminHomeBanner,
+  HomeBannerPayload,
 } from './types'
 
 type Envelope<T> = { success: boolean; data: T; meta?: { total?: number; limit?: number; offset?: number } }
@@ -138,6 +140,46 @@ export async function getOrder(id: string): Promise<AdminOrder> {
     `/admin/orders/${encodeURIComponent(id)}`,
   )
   return response.data.data.order
+}
+
+export async function listHomeBanners(): Promise<AdminHomeBanner[]> {
+  const response = await apiClient.get<Envelope<{ banners: AdminHomeBanner[] }>>(
+    '/admin/home-banners',
+  )
+  return response.data.data.banners
+}
+
+export async function getHomeBanner(id: string): Promise<AdminHomeBanner> {
+  const response = await apiClient.get<Envelope<{ banner: AdminHomeBanner }>>(
+    `/admin/home-banners/${encodeURIComponent(id)}`,
+  )
+  return response.data.data.banner
+}
+
+export async function createHomeBanner(payload: HomeBannerPayload): Promise<AdminHomeBanner> {
+  const response = await apiClient.post<Envelope<{ banner: AdminHomeBanner }>>(
+    '/admin/home-banners',
+    payload,
+  )
+  return response.data.data.banner
+}
+
+export async function updateHomeBanner(
+  id: string,
+  payload: Partial<HomeBannerPayload>,
+): Promise<AdminHomeBanner> {
+  const response = await apiClient.patch<Envelope<{ banner: AdminHomeBanner }>>(
+    `/admin/home-banners/${encodeURIComponent(id)}`,
+    payload,
+  )
+  return response.data.data.banner
+}
+
+export async function disableHomeBanner(id: string): Promise<AdminHomeBanner> {
+  const response = await apiClient.delete<Envelope<{ banner: AdminHomeBanner }>>(
+    `/admin/home-banners/${encodeURIComponent(id)}`,
+  )
+  return response.data.data.banner
 }
 
 export function formatPaise(paise: number): string {

@@ -1,4 +1,5 @@
 import {
+  ImagePlus,
   LayoutDashboard,
   MapPinned,
   Package,
@@ -23,6 +24,12 @@ const modules = [
     icon: Package,
     title: 'Products',
     description: 'Manage details, selling price, MRP, stock, and availability.',
+  },
+  {
+    to: '/home-banners',
+    icon: ImagePlus,
+    title: 'Home banners',
+    description: 'Images, optional copy, and links shown on the customer Home slider.',
   },
   {
     to: '/service-areas',
