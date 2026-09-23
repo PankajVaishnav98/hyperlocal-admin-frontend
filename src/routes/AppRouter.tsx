@@ -13,6 +13,7 @@ import { ProductFormPage } from '../pages/ProductFormPage'
 import { ProductsPage } from '../pages/ProductsPage'
 import { ServiceAreaFormPage } from '../pages/ServiceAreaFormPage'
 import { ServiceAreasPage } from '../pages/ServiceAreasPage'
+import { SessionsPage } from '../pages/SessionsPage'
 
 export function AppRouter() {
   return (
@@ -31,6 +32,7 @@ export function AppRouter() {
           <Route path="service-areas/new" element={<ServiceAreaFormPage />} />
           <Route path="service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="sessions" element={<SessionsPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
         </Route>
       </Route>

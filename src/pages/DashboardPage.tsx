@@ -3,6 +3,7 @@ import {
   MapPinned,
   Package,
   Receipt,
+  Shield,
   Tags,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -34,6 +35,12 @@ const modules = [
     icon: Receipt,
     title: 'Orders',
     description: 'Cash-on-delivery inbox for platform-fulfilled customer orders.',
+  },
+  {
+    to: '/sessions',
+    icon: Shield,
+    title: 'Devices',
+    description: 'See and revoke active operator sessions without exposing tokens.',
   },
 ]
 

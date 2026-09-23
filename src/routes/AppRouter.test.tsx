@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +8,15 @@ import { AuthProvider } from '../features/auth/AuthProvider'
 import type { AdminSession } from '../features/auth/auth.types'
 import { AppRouter } from './AppRouter'
 
+vi.mock('../features/auth/sessionService', async () => {
+  const actual = await vi.importActual<typeof import('../features/auth/sessionService')>(
+    '../features/auth/sessionService',
+  )
+  return {
+    ...actual,
+    listAdminSessions: vi.fn(async () => []),
+  }
+})
 vi.mock('../features/ops/api', () => ({
   listOrders: () => Promise.resolve([]),
   getOrder: () => Promise.reject(new Error('not used')),
@@ -20,6 +30,7 @@ function renderRouter({
   session?: AdminSession | null
 } = {}) {
   const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     defaultOptions: { queries: { retry: false } },
   })
   return render(
@@ -61,6 +72,22 @@ describe('AppRouter', () => {
     expect(screen.getByText('No order metrics yet')).toBeInTheDocument()
   })
 
+  it('renders the operator device session screen', async () => {
+    renderRouter({
+      path: '/sessions',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Signed-in devices' }),
+    ).toBeInTheDocument()
+  })
+
+  it('renders the honest empty orders screen', async () => {
   it('renders the orders inbox empty state when there are no COD orders', async () => {
     renderRouter({
       path: '/orders',

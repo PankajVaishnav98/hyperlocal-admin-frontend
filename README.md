@@ -68,6 +68,8 @@ npm run preview
 - `/categories`, `/categories/new`, `/categories/:categoryId`
 - `/products`, `/products/new`, `/products/:productId`
 - `/service-areas`, `/service-areas/new`, `/service-areas/:serviceAreaId`
+- `/orders` — honest empty state until the order domain exists
+- `/sessions` — list and revoke operator refresh sessions
 - `/orders`, `/orders/:orderId` — cash-on-delivery inbox
 
 Frontend guards only improve navigation. The API enforces the admin role on

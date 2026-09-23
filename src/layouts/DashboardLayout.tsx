@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  Shield,
   Tags,
   X,
 } from 'lucide-react'
@@ -23,6 +24,7 @@ const links = [
   { to: '/products', label: 'Products', icon: Package },
   { to: '/service-areas', label: 'Service areas', icon: MapPinned },
   { to: '/orders', label: 'Orders', icon: Receipt },
+  { to: '/sessions', label: 'Devices', icon: Shield },
 ]
 
 function Navigation({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
