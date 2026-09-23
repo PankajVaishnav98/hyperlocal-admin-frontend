@@ -8,6 +8,7 @@ import { DashboardPage } from '../pages/DashboardPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { OrdersPage } from '../pages/OrdersPage'
+import { OrderDetailPage } from '../pages/OrderDetailPage'
 import { ProductFormPage } from '../pages/ProductFormPage'
 import { ProductsPage } from '../pages/ProductsPage'
 import { ServiceAreaFormPage } from '../pages/ServiceAreaFormPage'
@@ -30,6 +31,7 @@ export function AppRouter() {
           <Route path="service-areas/new" element={<ServiceAreaFormPage />} />
           <Route path="service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:orderId" element={<OrderDetailPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

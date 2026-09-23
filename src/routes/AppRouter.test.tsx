@@ -1,10 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '../features/auth/AuthProvider'
 import type { AdminSession } from '../features/auth/auth.types'
 import { AppRouter } from './AppRouter'
+
+vi.mock('../features/ops/api', () => ({
+  listOrders: () => Promise.resolve([]),
+  getOrder: () => Promise.reject(new Error('not used')),
+}))
 
 function renderRouter({
   path = '/',
@@ -13,12 +19,17 @@ function renderRouter({
   path?: string
   session?: AdminSession | null
 } = {}) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   return render(
-    <AuthProvider sessionLoader={() => Promise.resolve(session)}>
-      <MemoryRouter initialEntries={[path]}>
-        <AppRouter />
-      </MemoryRouter>
-    </AuthProvider>,
+    <QueryClientProvider client={client}>
+      <AuthProvider sessionLoader={() => Promise.resolve(session)}>
+        <MemoryRouter initialEntries={[path]}>
+          <AppRouter />
+        </MemoryRouter>
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 }
 
@@ -50,7 +61,7 @@ describe('AppRouter', () => {
     expect(screen.getByText('No order metrics yet')).toBeInTheDocument()
   })
 
-  it('renders the honest empty orders screen', async () => {
+  it('renders the orders inbox empty state when there are no COD orders', async () => {
     renderRouter({
       path: '/orders',
       session: {
@@ -63,7 +74,7 @@ describe('AppRouter', () => {
     expect(
       await screen.findByRole('heading', { name: 'Orders' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('No orders to operate')).toBeInTheDocument()
+    expect(await screen.findByText('No COD orders yet')).toBeInTheDocument()
   })
 
   it('renders a not-found page for unknown locations', () => {

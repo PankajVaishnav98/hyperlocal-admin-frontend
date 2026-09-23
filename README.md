@@ -68,13 +68,13 @@ npm run preview
 - `/categories`, `/categories/new`, `/categories/:categoryId`
 - `/products`, `/products/new`, `/products/:productId`
 - `/service-areas`, `/service-areas/new`, `/service-areas/:serviceAreaId`
-- `/orders` — honest empty state until the order domain exists
+- `/orders`, `/orders/:orderId` — cash-on-delivery inbox
 
 Frontend guards only improve navigation. The API enforces the admin role on
 every mutation.
 
 ## Limitations
 
-- Banners, customers, delivery people, and checkout/COD are not in this release.
+- Banners, customers, delivery people, and live GPS tracking are not in this release.
 - Product images are not uploaded; object storage is still later work.
 - Delete in the UI disables records so historical references stay intact.

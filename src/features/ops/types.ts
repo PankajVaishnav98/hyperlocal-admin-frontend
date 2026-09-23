@@ -46,3 +46,41 @@ export type ServiceArea = {
 export type CategoryPayload = Omit<AdminCategory, 'id'>
 export type ProductPayload = Omit<AdminProduct, 'id' | 'inventoryStatus'>
 export type ServiceAreaPayload = Omit<ServiceArea, 'id'>
+
+export type OrderStatus = 'placed' | 'cancelled'
+
+export type AdminOrder = {
+  id: string
+  orderNumber: string
+  status: OrderStatus
+  customerMobile: string
+  items: Array<{
+    productId: string
+    nameEn: string
+    quantity: number
+    lineTotalPaise: number
+  }>
+  address: {
+    recipientName: string
+    line1: string
+    city: string
+    state: string
+    pincode: string
+  }
+  service: {
+    serviceAreaName: string
+    distanceKm: number
+  }
+  pricing: {
+    itemsPaise: number
+    deliveryFeePaise: number
+    grandTotalPaise: number
+  }
+  payment: {
+    method: 'cod'
+    status: 'pending'
+    amountPaise: number
+  }
+  placedAt: string
+  cancelledAt: string | null
+}
