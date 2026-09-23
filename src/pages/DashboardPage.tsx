@@ -34,7 +34,7 @@ const modules = [
     to: '/orders',
     icon: Receipt,
     title: 'Orders',
-    description: 'Fulfillment arrives after checkout. This queue is empty by design.',
+    description: 'Cash-on-delivery inbox for platform-fulfilled customer orders.',
   },
   {
     to: '/sessions',
@@ -82,7 +82,7 @@ export function DashboardPage() {
 
       <EmptyState
         title="No order metrics yet"
-        description="Dashboard KPIs will appear when the order domain is implemented. This screen does not invent sales or volume numbers."
+        description="This overview does not invent sales volume. Open Orders to see real COD tickets."
       />
     </div>
   )

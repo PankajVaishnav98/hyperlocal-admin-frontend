@@ -6,6 +6,7 @@ import type {
   ProductPayload,
   ServiceArea,
   ServiceAreaPayload,
+  AdminOrder,
 } from './types'
 
 type Envelope<T> = { success: boolean; data: T; meta?: { total?: number; limit?: number; offset?: number } }
@@ -123,6 +124,20 @@ export async function disableServiceArea(id: string): Promise<ServiceArea> {
     `/admin/service-areas/${encodeURIComponent(id)}`,
   )
   return response.data.data.serviceArea
+}
+
+export async function listOrders(): Promise<AdminOrder[]> {
+  const response = await apiClient.get<Envelope<{ orders: AdminOrder[] }>>('/admin/orders', {
+    params: { limit: 50, offset: 0 },
+  })
+  return response.data.data.orders
+}
+
+export async function getOrder(id: string): Promise<AdminOrder> {
+  const response = await apiClient.get<Envelope<{ order: AdminOrder }>>(
+    `/admin/orders/${encodeURIComponent(id)}`,
+  )
+  return response.data.data.order
 }
 
 export function formatPaise(paise: number): string {

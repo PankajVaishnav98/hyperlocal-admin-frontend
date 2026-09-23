@@ -18,7 +18,7 @@ export function ServiceAreasPage() {
     <div className="space-y-6">
       <PageHeader
         title="Service areas"
-        description="Coverage radius and the centralized distance-based delivery fee. Checkout will use these rules later."
+        description="Coverage radius and the centralized distance-based delivery fee used at checkout."
         action={<PrimaryLink to="/service-areas/new">New service area</PrimaryLink>}
       />
       <QueryGate
