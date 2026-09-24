@@ -17,6 +17,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import { Badge, BrandMark, Button } from '../components/ui/Primitives'
 import { useAuth } from '../features/auth/authContext'
+import { useAdminOrderSocket } from '../features/ops/realtime'
 import { cn } from '../utils/cn'
 
 const links = [
@@ -70,6 +71,7 @@ export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [desktopCollapsed, setDesktopCollapsed] = useState(false)
   const auth = useAuth()
+  useAdminOrderSocket(auth.status === 'authenticated')
   const displayName =
     auth.status === 'authenticated' ? auth.session.displayName : 'Administrator'
   const email = auth.status === 'authenticated' ? auth.session.email : ''

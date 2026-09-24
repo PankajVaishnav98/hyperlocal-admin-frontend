@@ -1,15 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
+import { ApiError } from '../api/errors'
 import { disableHomeBanner, listHomeBanners } from '../features/ops/api'
-import { ActiveBadge, DataTable, PageHeader, PrimaryLink, QueryGate, RowActions } from '../features/ops/ui'
+import {
+  ActiveBadge,
+  ConfirmDialog,
+  DataTable,
+  PageHeader,
+  PrimaryLink,
+  QueryGate,
+  RowActions,
+} from '../features/ops/ui'
+import { useConfirmTarget } from '../features/ops/confirm'
+import type { AdminHomeBanner } from '../features/ops/types'
 
 export function HomeBannersPage() {
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['admin', 'home-banners'], queryFn: listHomeBanners })
+  const confirm = useConfirmTarget<AdminHomeBanner>()
   const disable = useMutation({
     mutationFn: disableHomeBanner,
     onSuccess: async () => {
+      confirm.close()
       await queryClient.invalidateQueries({ queryKey: ['admin', 'home-banners'] })
     },
   })
@@ -52,12 +65,12 @@ export function HomeBannersPage() {
               </td>
               <td className="px-4 py-3 text-right">
                 <RowActions
-                  disabled={!banner.isActive}
-                  disabling={disable.isPending && disable.variables === banner.id}
-                  onDisable={() => {
-                    if (window.confirm('Disable this home banner? It will leave the customer slider.')) {
-                      disable.mutate(banner.id)
-                    }
+                  editTo={`/home-banners/${banner.id}`}
+                  deleteDisabled={!banner.isActive}
+                  deleting={disable.isPending && confirm.target?.id === banner.id}
+                  onDelete={() => {
+                    disable.reset()
+                    confirm.open(banner)
                   }}
                 />
               </td>
@@ -65,6 +78,22 @@ export function HomeBannersPage() {
           ))}
         </DataTable>
       </QueryGate>
+      {confirm.target ? (
+        <ConfirmDialog
+          title="Delete this home banner?"
+          description="It will leave the customer slider. You can reactivate it from the edit screen."
+          loading={disable.isPending}
+          error={
+            disable.error instanceof ApiError
+              ? disable.error.message
+              : disable.error
+                ? 'Could not delete this banner.'
+                : null
+          }
+          onCancel={confirm.close}
+          onConfirm={() => disable.mutate(confirm.target!.id)}
+        />
+      ) : null}
     </div>
   )
 }

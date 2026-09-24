@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
@@ -8,17 +8,18 @@ import { Button, Card, Input, Textarea } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
 import {
   createProduct,
+  disableProduct,
   getProduct,
   listCategories,
   rupeesToPaise,
   updateProduct,
 } from '../features/ops/api'
 import type { AdminProduct } from '../features/ops/types'
-import { PageHeader } from '../features/ops/ui'
+import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 
 const schema = z.object({
   categoryId: z.string().min(1, 'Choose a category'),
-  sku: z.string().trim().toUpperCase().regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Uppercase SKU'),
+  sku: z.string().trim().toUpperCase().regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Uppercase SKU').min(3),
   nameEn: z.string().trim().min(1, 'Required'),
   nameHi: z.string().trim().min(1, 'Required'),
   description: z.string().trim().max(1000),
@@ -57,10 +58,12 @@ function ProductForm({
 }) {
   const isNew = !productId
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const save = useMutation({
     mutationFn: async () => {
@@ -100,7 +103,18 @@ function ProductForm({
       }
       return isNew ? createProduct(payload) : updateProduct(productId, payload)
     },
-    onSuccess: () => navigate('/products'),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      navigate('/products')
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => disableProduct(productId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      navigate('/products')
+    },
   })
 
   async function onSubmit(event: FormEvent) {
@@ -168,12 +182,33 @@ function ProductForm({
             Active in the customer shop
           </label>
           {formError && <p role="alert" className="text-sm text-danger-600">{formError}</p>}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button type="submit" loading={save.isPending}>Save product</Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/products')}>Cancel</Button>
+            {!isNew && initial?.isActive ? (
+              <Button type="button" variant="danger" onClick={() => setConfirmDelete(true)}>
+                Delete
+              </Button>
+            ) : null}
           </div>
         </form>
       </Card>
+      {confirmDelete ? (
+        <ConfirmDialog
+          title={`Delete ${values.nameEn || 'this product'}?`}
+          description="Customers will no longer see it. You can reactivate it from this form."
+          loading={remove.isPending}
+          error={
+            remove.error instanceof ApiError
+              ? remove.error.message
+              : remove.error
+                ? 'Could not delete this product.'
+                : null
+          }
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => remove.mutate()}
+        />
+      ) : null}
     </div>
   )
 }

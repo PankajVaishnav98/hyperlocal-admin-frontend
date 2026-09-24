@@ -21,6 +21,12 @@ vi.mock('../features/ops/api', () => ({
   getOrder: () => Promise.reject(new Error('not used')),
   listHomeBanners: () => Promise.resolve([]),
   disableHomeBanner: () => Promise.resolve({ id: 'ban_1', isActive: false }),
+  listCategories: () => Promise.resolve([]),
+  listProducts: () => Promise.resolve([]),
+  listServiceAreas: () => Promise.resolve([]),
+}))
+vi.mock('../features/ops/realtime', () => ({
+  useAdminOrderSocket: () => undefined,
 }))
 
 function renderRouter({
@@ -64,12 +70,12 @@ describe('AppRouter', () => {
     })
 
     expect(
-      await screen.findByRole('heading', { name: 'Catalog and coverage' }),
+      await screen.findByRole('heading', { name: 'Operations' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: 'Primary navigation' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('No order metrics yet')).toBeInTheDocument()
+    expect(await screen.findByText('No COD tickets yet')).toBeInTheDocument()
   })
 
   it('renders the operator device session screen', async () => {

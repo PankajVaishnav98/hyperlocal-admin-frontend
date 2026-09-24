@@ -2,8 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
+import { ApiError } from '../api/errors'
 import { disableProduct, formatPaise, listCategories, listProducts } from '../features/ops/api'
-import { ActiveBadge, DataTable, PageHeader, PrimaryLink, QueryGate, RowActions } from '../features/ops/ui'
+import {
+  ActiveBadge,
+  ConfirmDialog,
+  DataTable,
+  PageHeader,
+  PrimaryLink,
+  QueryGate,
+  RowActions,
+} from '../features/ops/ui'
+import { useConfirmTarget } from '../features/ops/confirm'
+import type { AdminProduct } from '../features/ops/types'
 
 const inventoryTone = {
   IN_STOCK: 'success',
@@ -16,9 +27,11 @@ export function ProductsPage() {
   const queryClient = useQueryClient()
   const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
   const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
+  const confirm = useConfirmTarget<AdminProduct>()
   const disable = useMutation({
     mutationFn: disableProduct,
     onSuccess: async () => {
+      confirm.close()
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
     },
   })
@@ -67,12 +80,12 @@ export function ProductsPage() {
               </td>
               <td className="px-4 py-3 text-right">
                 <RowActions
-                  disabled={!product.isActive}
-                  disabling={disable.isPending && disable.variables === product.id}
-                  onDisable={() => {
-                    if (window.confirm(`Disable ${product.nameEn}? Customers will no longer see it.`)) {
-                      disable.mutate(product.id)
-                    }
+                  editTo={`/products/${product.id}`}
+                  deleteDisabled={!product.isActive}
+                  deleting={disable.isPending && confirm.target?.id === product.id}
+                  onDelete={() => {
+                    disable.reset()
+                    confirm.open(product)
                   }}
                 />
               </td>
@@ -80,6 +93,22 @@ export function ProductsPage() {
           ))}
         </DataTable>
       </QueryGate>
+      {confirm.target ? (
+        <ConfirmDialog
+          title={`Delete ${confirm.target.nameEn}?`}
+          description="Customers will no longer see this product. Inventory and past orders are kept."
+          loading={disable.isPending}
+          error={
+            disable.error instanceof ApiError
+              ? disable.error.message
+              : disable.error
+                ? 'Could not delete this product.'
+                : null
+          }
+          onCancel={confirm.close}
+          onConfirm={() => disable.mutate(confirm.target!.id)}
+        />
+      ) : null}
     </div>
   )
 }

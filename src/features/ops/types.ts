@@ -32,22 +32,22 @@ export type ServiceArea = {
   id: string
   slug: string
   name: string
-  centerLatitude: number
-  centerLongitude: number
-  radiusKm: number
-  baseDistanceKm: number
-  baseFeePaise: number
-  additionalDistanceKm: number
-  additionalFeePaise: number
-  maxDistanceKm: number
+  pincode: string
+  perKmFeePaise: number
   isActive: boolean
 }
 
 export type CategoryPayload = Omit<AdminCategory, 'id'>
 export type ProductPayload = Omit<AdminProduct, 'id' | 'inventoryStatus'>
-export type ServiceAreaPayload = Omit<ServiceArea, 'id'>
+export type ServiceAreaPayload = {
+  name: string
+  pincode: string
+  perKmFeePaise: number
+  isActive: boolean
+}
 
-export type OrderStatus = 'placed' | 'cancelled'
+export type OrderStatus = 'placed' | 'accepted' | 'cancelled' | 'completed'
+export type AdminOrderAction = 'accept' | 'reject' | 'deliver'
 
 export type AdminOrder = {
   id: string
@@ -81,6 +81,7 @@ export type AdminOrder = {
     status: 'pending'
     amountPaise: number
   }
+  statusHistory: Array<{ status: OrderStatus; at: string }>
   placedAt: string
   cancelledAt: string | null
 }

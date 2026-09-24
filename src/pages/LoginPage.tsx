@@ -90,8 +90,8 @@ export function LoginPage() {
             A clear foundation for dependable local operations.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-ink-300">
-            Catalog, inventory, pricing, and service areas are managed here with
-            server-enforced administrator access.
+            Catalog, inventory, pricing, coverage, and COD orders are managed here
+            with server-enforced administrator access.
           </p>
         </div>
         <p className="text-sm text-ink-400">Hyperlocal administration</p>

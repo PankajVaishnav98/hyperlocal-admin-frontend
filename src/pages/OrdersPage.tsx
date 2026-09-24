@@ -3,10 +3,33 @@ import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
 import { formatPaise, listOrders } from '../features/ops/api'
+import type { OrderStatus } from '../features/ops/types'
 import { DataTable, PageHeader, QueryGate } from '../features/ops/ui'
 
-function statusTone(status: string) {
-  return status === 'placed' ? 'info' : 'warning'
+function statusTone(status: OrderStatus) {
+  switch (status) {
+    case 'placed':
+      return 'info'
+    case 'accepted':
+      return 'warning'
+    case 'completed':
+      return 'success'
+    case 'cancelled':
+      return 'neutral'
+  }
+}
+
+function statusLabel(status: OrderStatus) {
+  switch (status) {
+    case 'placed':
+      return 'Placed'
+    case 'accepted':
+      return 'Accepted'
+    case 'completed':
+      return 'Delivered'
+    case 'cancelled':
+      return 'Rejected'
+  }
 }
 
 export function OrdersPage() {
@@ -16,7 +39,7 @@ export function OrdersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Orders"
-        description="Cash-on-delivery orders placed by customers. Delivery assignment is not in this version."
+        description="Cash-on-delivery tickets. Accept, reject, or mark delivered from the order page. Live rider GPS is not available."
       />
       <QueryGate
         isLoading={query.isLoading}
@@ -38,7 +61,7 @@ export function OrdersPage() {
               <td className="px-4 py-3">{order.customerMobile}</td>
               <td className="px-4 py-3">{formatPaise(order.pricing.grandTotalPaise)}</td>
               <td className="px-4 py-3">
-                <Badge tone={statusTone(order.status)}>{order.status}</Badge>
+                <Badge tone={statusTone(order.status)}>{statusLabel(order.status)}</Badge>
               </td>
               <td className="px-4 py-3">{new Date(order.placedAt).toLocaleString('en-IN')}</td>
             </tr>

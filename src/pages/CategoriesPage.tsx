@@ -1,15 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
+import { ApiError } from '../api/errors'
 import { disableCategory, listCategories } from '../features/ops/api'
-import { ActiveBadge, DataTable, PageHeader, PrimaryLink, QueryGate, RowActions } from '../features/ops/ui'
+import {
+  ActiveBadge,
+  ConfirmDialog,
+  DataTable,
+  PageHeader,
+  PrimaryLink,
+  QueryGate,
+  RowActions,
+} from '../features/ops/ui'
+import { useConfirmTarget } from '../features/ops/confirm'
+import type { AdminCategory } from '../features/ops/types'
 
 export function CategoriesPage() {
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const confirm = useConfirmTarget<AdminCategory>()
   const disable = useMutation({
     mutationFn: disableCategory,
     onSuccess: async () => {
+      confirm.close()
       await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
     },
   })
@@ -18,7 +31,7 @@ export function CategoriesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Categories"
-        description="Aisles shown to customers. Disabling hides a category from the shop without deleting history."
+        description="Aisles shown to customers. Deleting hides a category from the shop without removing history."
         action={<PrimaryLink to="/categories/new">New category</PrimaryLink>}
       />
       <QueryGate
@@ -46,12 +59,12 @@ export function CategoriesPage() {
               </td>
               <td className="px-4 py-3 text-right">
                 <RowActions
-                  disabled={!category.isActive}
-                  disabling={disable.isPending && disable.variables === category.id}
-                  onDisable={() => {
-                    if (window.confirm(`Disable ${category.nameEn}? It will no longer appear in the shop.`)) {
-                      disable.mutate(category.id)
-                    }
+                  editTo={`/categories/${category.id}`}
+                  deleteDisabled={!category.isActive}
+                  deleting={disable.isPending && confirm.target?.id === category.id}
+                  onDelete={() => {
+                    disable.reset()
+                    confirm.open(category)
                   }}
                 />
               </td>
@@ -59,6 +72,22 @@ export function CategoriesPage() {
           ))}
         </DataTable>
       </QueryGate>
+      {confirm.target ? (
+        <ConfirmDialog
+          title={`Delete ${confirm.target.nameEn}?`}
+          description="Customers will no longer see this aisle. You can turn it back on later from the edit screen."
+          loading={disable.isPending}
+          error={
+            disable.error instanceof ApiError
+              ? disable.error.message
+              : disable.error
+                ? 'Could not delete this category.'
+                : null
+          }
+          onCancel={confirm.close}
+          onConfirm={() => disable.mutate(confirm.target!.id)}
+        />
+      ) : null}
     </div>
   )
 }

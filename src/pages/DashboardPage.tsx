@@ -7,10 +7,12 @@ import {
   Shield,
   Tags,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
-import { EmptyState } from '../components/states/SystemStates'
+import { EmptyState, ErrorState, LoadingState } from '../components/states/SystemStates'
 import { Badge, Card } from '../components/ui/Primitives'
+import { listCategories, listOrders, listProducts, listServiceAreas } from '../features/ops/api'
 
 const modules = [
   {
@@ -35,13 +37,13 @@ const modules = [
     to: '/service-areas',
     icon: MapPinned,
     title: 'Service areas',
-    description: 'Define coverage radius and the distance-based delivery fee.',
+    description: 'PIN codes you cover and the per-kilometre delivery charge.',
   },
   {
     to: '/orders',
     icon: Receipt,
     title: 'Orders',
-    description: 'Cash-on-delivery inbox for platform-fulfilled customer orders.',
+    description: 'Accept, reject, or mark cash-on-delivery orders delivered.',
   },
   {
     to: '/sessions',
@@ -52,6 +54,15 @@ const modules = [
 ]
 
 export function DashboardPage() {
+  const orders = useQuery({ queryKey: ['admin', 'orders'], queryFn: listOrders })
+  const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
+  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const areas = useQuery({ queryKey: ['admin', 'service-areas'], queryFn: listServiceAreas })
+
+  const placed = (orders.data ?? []).filter((order) => order.status === 'placed').length
+  const accepted = (orders.data ?? []).filter((order) => order.status === 'accepted').length
+  const overviewError = orders.error ?? products.error ?? categories.error ?? areas.error
+
   return (
     <div className="space-y-7">
       <section aria-labelledby="page-title">
@@ -63,13 +74,55 @@ export function DashboardPage() {
           id="page-title"
           className="mt-4 font-display text-3xl font-semibold tracking-[-0.03em] text-ink-950 sm:text-4xl"
         >
-          Catalog and coverage
+          Operations
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-600 sm:text-base">
-          Hyperlocal runs a platform-managed catalog. There are no seller logins
-          and no online payments in this version.
+          Manage catalog, coverage, and cash-on-delivery fulfillment. There are no
+          seller logins and no online payments in this version.
         </p>
       </section>
+
+      {orders.isLoading && products.isLoading ? (
+        <LoadingState label="Loading operations summary" rows={2} />
+      ) : overviewError ? (
+        <ErrorState
+          title="Could not load the overview"
+          description={overviewError instanceof Error ? overviewError.message : 'Please try again.'}
+          onRetry={() => {
+            void orders.refetch()
+            void products.refetch()
+            void categories.refetch()
+            void areas.refetch()
+          }}
+        />
+      ) : (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Waiting</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink-950">{placed}</p>
+            <p className="mt-1 text-sm text-ink-600">Placed, not yet accepted</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">In progress</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink-950">{accepted}</p>
+            <p className="mt-1 text-sm text-ink-600">Accepted, not delivered</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Catalog</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink-950">
+              {products.data?.length ?? 0}
+            </p>
+            <p className="mt-1 text-sm text-ink-600">{categories.data?.length ?? 0} categories</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Coverage</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink-950">
+              {(areas.data ?? []).filter((area) => area.isActive).length}
+            </p>
+            <p className="mt-1 text-sm text-ink-600">Active PIN codes</p>
+          </Card>
+        </section>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-2">
         {modules.map(({ to, icon: Icon, title, description }) => (
@@ -87,10 +140,12 @@ export function DashboardPage() {
         ))}
       </section>
 
-      <EmptyState
-        title="No order metrics yet"
-        description="This overview does not invent sales volume. Open Orders to see real COD tickets."
-      />
+      {(orders.data?.length ?? 0) === 0 && !orders.isLoading && !orders.error ? (
+        <EmptyState
+          title="No COD tickets yet"
+          description="This overview only counts real orders. Open Orders after a customer places cash on delivery."
+        />
+      ) : null}
     </div>
   )
 }

@@ -7,6 +7,7 @@ import type {
   ServiceArea,
   ServiceAreaPayload,
   AdminOrder,
+  AdminOrderAction,
   AdminHomeBanner,
   HomeBannerPayload,
 } from './types'
@@ -138,6 +139,17 @@ export async function listOrders(): Promise<AdminOrder[]> {
 export async function getOrder(id: string): Promise<AdminOrder> {
   const response = await apiClient.get<Envelope<{ order: AdminOrder }>>(
     `/admin/orders/${encodeURIComponent(id)}`,
+  )
+  return response.data.data.order
+}
+
+export async function transitionOrder(
+  id: string,
+  action: AdminOrderAction,
+): Promise<AdminOrder> {
+  const response = await apiClient.post<Envelope<{ order: AdminOrder }>>(
+    `/admin/orders/${encodeURIComponent(id)}/status`,
+    { action },
   )
   return response.data.data.order
 }

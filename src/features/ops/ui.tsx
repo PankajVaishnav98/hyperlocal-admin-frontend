@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState, ErrorState, LoadingState } from '../../components/states/SystemStates'
@@ -105,7 +105,7 @@ export function DataTable({
           <thead className="border-b border-ink-100 bg-ink-50 text-xs font-semibold uppercase tracking-wide text-ink-500">
             <tr>
               {columns.map((column) => (
-                <th key={column} className="px-4 py-3">
+                <th key={column || 'actions'} className="px-4 py-3">
                   {column}
                 </th>
               ))}
@@ -119,23 +119,82 @@ export function DataTable({
 }
 
 export function RowActions({
-  onDisable,
-  disabling,
-  disabled,
+  editTo,
+  onDelete,
+  deleting,
+  deleteDisabled,
 }: {
-  onDisable: () => void
-  disabling?: boolean
-  disabled?: boolean
+  editTo: string
+  onDelete: () => void
+  deleting?: boolean
+  deleteDisabled?: boolean
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onDisable}
-      loading={disabling}
-      disabled={disabled}
-    >
-      Disable
-    </Button>
+    <div className="flex justify-end gap-2">
+      <Link
+        to={editTo}
+        className="inline-flex h-9 items-center rounded-xl px-3 text-sm font-semibold text-ink-800 hover:bg-ink-100"
+      >
+        Edit
+      </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onDelete}
+        loading={deleting}
+        disabled={deleteDisabled}
+      >
+        Delete
+      </Button>
+    </div>
+  )
+}
+
+export function ConfirmDialog({
+  title,
+  description,
+  confirmLabel = 'Delete',
+  loading,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  description: string
+  confirmLabel?: string
+  loading?: boolean
+  error?: string | null
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const titleId = useId()
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm"
+        aria-label="Close dialog"
+        onClick={onCancel}
+      />
+      <Card className="relative z-10 w-full max-w-md p-6" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <h2 id={titleId} className="font-display text-lg font-semibold text-ink-950">
+          {title}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-ink-600">{description}</p>
+        {error ? (
+          <p className="mt-3 text-sm text-danger-600" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" loading={loading} onClick={onConfirm}>
+            {confirmLabel}
+          </Button>
+        </div>
+      </Card>
+    </div>
   )
 }

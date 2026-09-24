@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
@@ -62,6 +62,7 @@ function HomeBannerForm({
 }) {
   const isNew = !bannerId
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -91,7 +92,10 @@ function HomeBannerForm({
       }
       return isNew ? createHomeBanner(payload) : updateHomeBanner(bannerId, payload)
     },
-    onSuccess: () => navigate('/home-banners'),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'home-banners'] })
+      navigate('/home-banners')
+    },
   })
 
   async function onSubmit(event: FormEvent) {

@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
 import { ErrorState, LoadingState } from '../components/states/SystemStates'
 import { Button, Card, Input, Textarea } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
-import { createCategory, getCategory, updateCategory } from '../features/ops/api'
+import { createCategory, disableCategory, getCategory, updateCategory } from '../features/ops/api'
 import type { AdminCategory } from '../features/ops/types'
-import { PageHeader } from '../features/ops/ui'
+import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 
 const schema = z.object({
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use kebab-case'),
@@ -41,9 +41,11 @@ function CategoryForm({
 }) {
   const isNew = !categoryId
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const save = useMutation({
     mutationFn: async () => {
       const parsed = schema.safeParse(values)
@@ -58,7 +60,17 @@ function CategoryForm({
       setErrors({})
       return isNew ? createCategory(parsed.data) : updateCategory(categoryId, parsed.data)
     },
-    onSuccess: () => navigate('/categories'),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
+      navigate('/categories')
+    },
+  })
+  const remove = useMutation({
+    mutationFn: () => disableCategory(categoryId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
+      navigate('/categories')
+    },
   })
 
   async function onSubmit(event: FormEvent) {
@@ -97,12 +109,33 @@ function CategoryForm({
             Active in the customer shop
           </label>
           {formError && <p role="alert" className="text-sm text-danger-600">{formError}</p>}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button type="submit" loading={save.isPending}>Save category</Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/categories')}>Cancel</Button>
+            {!isNew && initial?.isActive ? (
+              <Button type="button" variant="danger" onClick={() => setConfirmDelete(true)}>
+                Delete
+              </Button>
+            ) : null}
           </div>
         </form>
       </Card>
+      {confirmDelete ? (
+        <ConfirmDialog
+          title={`Delete ${values.nameEn || 'this category'}?`}
+          description="It will no longer appear in the shop. You can reactivate it from this form."
+          loading={remove.isPending}
+          error={
+            remove.error instanceof ApiError
+              ? remove.error.message
+              : remove.error
+                ? 'Could not delete this category.'
+                : null
+          }
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => remove.mutate()}
+        />
+      ) : null}
     </div>
   )
 }
