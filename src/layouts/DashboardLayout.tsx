@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  RotateCcw,
   Shield,
   Tags,
   X,
@@ -29,6 +30,7 @@ const links = [
   { to: '/home-banners', label: 'Home banners', icon: ImagePlus },
   { to: '/service-areas', label: 'Service areas', icon: MapPinned },
   { to: '/orders', label: 'Orders', icon: Receipt },
+  { to: '/returns', label: 'Returns', icon: RotateCcw },
   { to: '/sessions', label: 'Devices', icon: Shield },
 ]
 

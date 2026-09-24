@@ -135,6 +135,20 @@ describe('AppRouter', () => {
     expect(await screen.findByText('No COD orders yet')).toBeInTheDocument()
   })
 
+  it('renders the dedicated returns inbox', async () => {
+    renderRouter({
+      path: '/returns',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Returns' })).toBeInTheDocument()
+    expect(await screen.findByText('No return requests')).toBeInTheDocument()
+  })
+
   it('renders the home banners empty state', async () => {
     renderRouter({
       path: '/home-banners',

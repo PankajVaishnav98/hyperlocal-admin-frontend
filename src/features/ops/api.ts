@@ -193,12 +193,14 @@ export async function disableServiceArea(id: string): Promise<ServiceArea> {
 export async function listOrders(query?: {
   status?: OrderStatus
   limit?: number
+  returnRequested?: boolean
 }): Promise<AdminOrder[]> {
   const response = await apiClient.get<Envelope<{ orders: AdminOrder[] }>>('/admin/orders', {
     params: {
       limit: query?.limit ?? 100,
       offset: 0,
       ...(query?.status ? { status: query.status } : {}),
+      ...(query?.returnRequested ? { returnRequested: 'true' } : {}),
     },
   })
   return response.data.data.orders
