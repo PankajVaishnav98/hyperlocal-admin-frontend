@@ -34,6 +34,9 @@ function isAuthPath(url: string | undefined): boolean {
 }
 
 apiClient.interceptors.request.use((config) => {
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type')
+  }
   const accessToken = getAccessToken()
   if (accessToken) {
     config.headers.set('Authorization', `Bearer ${accessToken}`)

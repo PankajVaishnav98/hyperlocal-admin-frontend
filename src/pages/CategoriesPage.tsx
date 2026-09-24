@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
@@ -17,7 +18,16 @@ import type { AdminCategory } from '../features/ops/types'
 
 export function CategoriesPage() {
   const queryClient = useQueryClient()
-  const query = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const [q, setQ] = useState('')
+  const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const query = useQuery({
+    queryKey: ['admin', 'categories', q, active],
+    queryFn: () =>
+      listCategories({
+        ...(q.trim() ? { q: q.trim() } : {}),
+        ...(active === 'all' ? {} : { active }),
+      }),
+  })
   const confirm = useConfirmTarget<AdminCategory>()
   const disable = useMutation({
     mutationFn: disableCategory,
@@ -34,6 +44,23 @@ export function CategoriesPage() {
         description="Aisles shown to customers. Deleting hides a category from the shop without removing history."
         action={<PrimaryLink to="/categories/new">New category</PrimaryLink>}
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="Search name or slug"
+          className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
+        />
+        <select
+          value={active}
+          onChange={(event) => setActive(event.target.value as 'all' | 'true' | 'false')}
+          className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
+        >
+          <option value="all">Active and inactive</option>
+          <option value="true">Active only</option>
+          <option value="false">Inactive only</option>
+        </select>
+      </div>
       <QueryGate
         isLoading={query.isLoading}
         error={query.error}
@@ -47,10 +74,19 @@ export function CategoriesPage() {
           {query.data?.map((category) => (
             <tr key={category.id} className="text-ink-800">
               <td className="px-4 py-3">
-                <Link className="font-semibold text-ink-950 hover:underline" to={`/categories/${category.id}`}>
-                  {category.nameEn}
-                </Link>
-                <p className="text-xs text-ink-500">{category.nameHi}</p>
+                <div className="flex items-center gap-3">
+                  {category.imageUrl ? (
+                    <img src={category.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                  ) : (
+                    <span className="h-10 w-10 rounded-lg bg-ink-100" />
+                  )}
+                  <div>
+                    <Link className="font-semibold text-ink-950 hover:underline" to={`/categories/${category.id}`}>
+                      {category.nameEn}
+                    </Link>
+                    <p className="text-xs text-ink-500">{category.nameHi}</p>
+                  </div>
+                </div>
               </td>
               <td className="px-4 py-3 font-mono text-xs">{category.slug}</td>
               <td className="px-4 py-3">{category.sortOrder}</td>

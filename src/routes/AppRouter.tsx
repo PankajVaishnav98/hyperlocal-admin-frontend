@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { DashboardLayout } from '../layouts/DashboardLayout'
+import { AnalysisPage } from '../pages/AnalysisPage'
 import { CategoriesPage } from '../pages/CategoriesPage'
 import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -24,6 +25,7 @@ export function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="analysis" element={<AnalysisPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="categories/new" element={<CategoryFormPage />} />
           <Route path="categories/:categoryId" element={<CategoryFormPage />} />

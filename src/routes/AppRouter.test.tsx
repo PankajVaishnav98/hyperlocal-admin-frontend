@@ -24,6 +24,7 @@ vi.mock('../features/ops/api', () => ({
   listCategories: () => Promise.resolve([]),
   listProducts: () => Promise.resolve([]),
   listServiceAreas: () => Promise.resolve([]),
+  getAnalysis: () => Promise.resolve(null),
 }))
 vi.mock('../features/ops/realtime', () => ({
   useAdminOrderSocket: () => undefined,

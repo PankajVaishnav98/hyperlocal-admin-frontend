@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   ImagePlus,
   LayoutDashboard,
   MapPinned,
@@ -15,6 +16,12 @@ import { Badge, Card } from '../components/ui/Primitives'
 import { listCategories, listOrders, listProducts, listServiceAreas } from '../features/ops/api'
 
 const modules = [
+  {
+    to: '/analysis',
+    icon: BarChart3,
+    title: 'Analysis',
+    description: 'Merchandise revenue, delivery fees, profit from product cost, and order charts.',
+  },
   {
     to: '/categories',
     icon: Tags,
@@ -56,7 +63,7 @@ const modules = [
 export function DashboardPage() {
   const orders = useQuery({ queryKey: ['admin', 'orders'], queryFn: listOrders })
   const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
   const areas = useQuery({ queryKey: ['admin', 'service-areas'], queryFn: listServiceAreas })
 
   const placed = (orders.data ?? []).filter((order) => order.status === 'placed').length

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
@@ -25,8 +26,19 @@ const inventoryTone = {
 
 export function ProductsPage() {
   const queryClient = useQueryClient()
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
-  const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
+  const [q, setQ] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
+  const products = useQuery({
+    queryKey: ['admin', 'products', q, categoryId, active],
+    queryFn: () =>
+      listProducts({
+        ...(q.trim() ? { q: q.trim() } : {}),
+        ...(categoryId ? { categoryId } : {}),
+        ...(active === 'all' ? {} : { active }),
+      }),
+  })
   const confirm = useConfirmTarget<AdminProduct>()
   const disable = useMutation({
     mutationFn: disableProduct,
@@ -44,6 +56,35 @@ export function ProductsPage() {
         description="Platform catalog with server-authoritative prices, stock, and availability."
         action={<PrimaryLink to="/products/new">New product</PrimaryLink>}
       />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <input
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="Search name or SKU"
+          className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
+        />
+        <select
+          value={categoryId}
+          onChange={(event) => setCategoryId(event.target.value)}
+          className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
+        >
+          <option value="">All categories</option>
+          {(categories.data ?? []).map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.nameEn}
+            </option>
+          ))}
+        </select>
+        <select
+          value={active}
+          onChange={(event) => setActive(event.target.value as 'all' | 'true' | 'false')}
+          className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
+        >
+          <option value="all">Active and inactive</option>
+          <option value="true">Active only</option>
+          <option value="false">Inactive only</option>
+        </select>
+      </div>
       <QueryGate
         isLoading={products.isLoading}
         error={products.error}
@@ -57,12 +98,21 @@ export function ProductsPage() {
           {products.data?.map((product) => (
             <tr key={product.id} className="text-ink-800">
               <td className="px-4 py-3">
-                <Link className="font-semibold text-ink-950 hover:underline" to={`/products/${product.id}`}>
-                  {product.nameEn}
-                </Link>
-                <p className="text-xs text-ink-500">
-                  {product.nameHi} · {product.unit} · {product.sku}
-                </p>
+                <div className="flex items-center gap-3">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                  ) : (
+                    <span className="h-10 w-10 rounded-lg bg-ink-100" />
+                  )}
+                  <div>
+                    <Link className="font-semibold text-ink-950 hover:underline" to={`/products/${product.id}`}>
+                      {product.nameEn}
+                    </Link>
+                    <p className="text-xs text-ink-500">
+                      {product.nameHi} · {product.unit} · {product.sku}
+                    </p>
+                  </div>
+                </div>
               </td>
               <td className="px-4 py-3">{categoryName.get(product.categoryId) ?? product.categoryId}</td>
               <td className="px-4 py-3">

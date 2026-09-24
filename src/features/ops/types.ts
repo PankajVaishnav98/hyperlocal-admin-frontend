@@ -5,6 +5,7 @@ export type AdminCategory = {
   nameHi: string
   description: string
   accent: string
+  imageUrl: string | null
   sortOrder: number
   isActive: boolean
 }
@@ -23,6 +24,8 @@ export type AdminProduct = {
   mrpPaise: number
   stockQuantity: number
   lowStockThreshold: number
+  costPaise: number | null
+  imageUrl: string | null
   inStock: boolean
   isActive: boolean
   inventoryStatus: InventoryStatus
@@ -101,3 +104,40 @@ export type AdminHomeBanner = {
 }
 
 export type HomeBannerPayload = Omit<AdminHomeBanner, 'id'>
+
+export type ImageFolder = 'products' | 'categories' | 'banners'
+
+export type AnalysisReport = {
+  timeZone: 'Asia/Kolkata' | 'UTC'
+  from: string
+  to: string
+  today: string
+  definitions: {
+    merchandiseRevenue: string
+    deliveryFees: string
+    platformProfit: string
+  }
+  range: {
+    orderCount: number
+    merchandiseRevenuePaise: number
+    deliveryFeePaise: number
+    cogsPaise: number
+    profitPaise: number
+    profitComplete: boolean
+    linesMissingCost: number
+  }
+  todayMetrics: {
+    orderCount: number
+    merchandiseRevenuePaise: number
+    deliveryFeePaise: number
+    cogsPaise: number
+    profitPaise: number
+    profitComplete: boolean
+    linesMissingCost: number
+  }
+  topProducts: Array<{ id: string; name: string; quantity: number; merchandisePaise: number }>
+  topCategories: Array<{ id: string; name: string; quantity: number; merchandisePaise: number }>
+  ordersByWeekday: Array<{ weekday: number; label: string; count: number }>
+  ordersByHour: Array<{ hour: number; count: number }>
+  heatmap: Array<{ weekday: number; hour: number; count: number }>
+}

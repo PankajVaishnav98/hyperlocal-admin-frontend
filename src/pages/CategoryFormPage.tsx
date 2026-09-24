@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from '../components/states/SystemStates'
 import { Button, Card, Input, Textarea } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
 import { createCategory, disableCategory, getCategory, updateCategory } from '../features/ops/api'
+import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminCategory } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 
@@ -18,6 +19,9 @@ const schema = z.object({
   accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Use a hex color like #D7E8DC'),
   sortOrder: z.coerce.number().int().min(0).max(10_000),
   isActive: z.boolean(),
+  imageUrl: z
+    .string()
+    .refine((value) => value === '' || value.startsWith('https://'), 'Upload an image first'),
 })
 
 function fieldsFrom(category?: AdminCategory) {
@@ -29,6 +33,7 @@ function fieldsFrom(category?: AdminCategory) {
     accent: category?.accent ?? '#D7E8DC',
     sortOrder: String(category?.sortOrder ?? 10),
     isActive: category?.isActive ?? true,
+    imageUrl: category?.imageUrl ?? '',
   }
 }
 
@@ -58,7 +63,11 @@ function CategoryForm({
         throw new Error('validation')
       }
       setErrors({})
-      return isNew ? createCategory(parsed.data) : updateCategory(categoryId, parsed.data)
+      const payload = {
+        ...parsed.data,
+        imageUrl: parsed.data.imageUrl || null,
+      }
+      return isNew ? createCategory(payload) : updateCategory(categoryId, payload)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
@@ -96,6 +105,12 @@ function CategoryForm({
           <Input label="Hindi name" value={values.nameHi} error={errors.nameHi} onChange={(event) => setValues((current) => ({ ...current, nameHi: event.target.value }))} />
           <Input label="Slug" value={values.slug} error={errors.slug} helperText="Lowercase kebab-case, for example dairy" onChange={(event) => setValues((current) => ({ ...current, slug: event.target.value }))} />
           <Textarea label="Description" value={values.description} error={errors.description} onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))} />
+          <ImageUploadField
+            folder="categories"
+            value={values.imageUrl}
+            error={errors.imageUrl}
+            onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))}
+          />
           <div className="grid gap-5 sm:grid-cols-2">
             <Input label="Accent color" value={values.accent} error={errors.accent} onChange={(event) => setValues((current) => ({ ...current, accent: event.target.value }))} />
             <Input label="Sort order" type="number" value={values.sortOrder} error={errors.sortOrder} onChange={(event) => setValues((current) => ({ ...current, sortOrder: event.target.value }))} />

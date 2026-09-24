@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  BarChart3,
   ImagePlus,
   LayoutDashboard,
   LogOut,
@@ -22,6 +23,7 @@ import { cn } from '../utils/cn'
 
 const links = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/analysis', label: 'Analysis', icon: BarChart3 },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/home-banners', label: 'Home banners', icon: ImagePlus },

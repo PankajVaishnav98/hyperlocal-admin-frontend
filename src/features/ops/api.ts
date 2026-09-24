@@ -10,12 +10,19 @@ import type {
   AdminOrderAction,
   AdminHomeBanner,
   HomeBannerPayload,
+  AnalysisReport,
+  ImageFolder,
 } from './types'
 
 type Envelope<T> = { success: boolean; data: T; meta?: { total?: number; limit?: number; offset?: number } }
 
-export async function listCategories(): Promise<AdminCategory[]> {
-  const response = await apiClient.get<Envelope<{ categories: AdminCategory[] }>>('/admin/categories')
+export async function listCategories(query?: {
+  q?: string
+  active?: 'true' | 'false'
+}): Promise<AdminCategory[]> {
+  const response = await apiClient.get<Envelope<{ categories: AdminCategory[] }>>('/admin/categories', {
+    params: query,
+  })
   return response.data.data.categories
 }
 
@@ -52,9 +59,10 @@ export async function disableCategory(id: string): Promise<AdminCategory> {
 export async function listProducts(query?: {
   q?: string
   categoryId?: string
+  active?: 'true' | 'false'
 }): Promise<AdminProduct[]> {
   const response = await apiClient.get<Envelope<{ products: AdminProduct[] }>>('/admin/products', {
-    params: { limit: 50, offset: 0, ...query },
+    params: { limit: 100, offset: 0, includeInactive: 'true', ...query },
   })
   return response.data.data.products
 }
@@ -192,6 +200,31 @@ export async function disableHomeBanner(id: string): Promise<AdminHomeBanner> {
     `/admin/home-banners/${encodeURIComponent(id)}`,
   )
   return response.data.data.banner
+}
+
+export async function uploadImage(folder: ImageFolder, file: File): Promise<string> {
+  const body = new FormData()
+  body.append('file', file)
+  const response = await apiClient.post<Envelope<{ image: { imageUrl: string } }>>(
+    '/admin/images',
+    body,
+    {
+      params: { folder },
+      timeout: 30_000,
+    },
+  )
+  return response.data.data.image.imageUrl
+}
+
+export async function getAnalysis(query: {
+  from: string
+  to: string
+  timeZone?: 'Asia/Kolkata' | 'UTC'
+}): Promise<AnalysisReport> {
+  const response = await apiClient.get<Envelope<{ analysis: AnalysisReport }>>('/admin/analysis', {
+    params: query,
+  })
+  return response.data.data.analysis
 }
 
 export function formatPaise(paise: number): string {

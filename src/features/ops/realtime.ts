@@ -35,6 +35,7 @@ export function useAdminOrderSocket(enabled: boolean) {
 
     const refreshOrders = () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'analysis'] })
     }
 
     for (const event of ORDER_EVENTS) {

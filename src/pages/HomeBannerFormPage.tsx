@@ -13,6 +13,7 @@ import {
   listProducts,
   updateHomeBanner,
 } from '../features/ops/api'
+import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminHomeBanner, HomeBannerLinkType } from '../features/ops/types'
 import { PageHeader } from '../features/ops/ui'
 
@@ -66,7 +67,7 @@ function HomeBannerForm({
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
   const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
   const save = useMutation({
     mutationFn: async () => {
@@ -117,12 +118,11 @@ function HomeBannerForm({
       />
       <Card className="max-w-2xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
-          <Input
-            label="Image URL"
+          <ImageUploadField
+            folder="banners"
             value={values.imageUrl}
             error={errors.imageUrl}
-            helperText="HTTPS only. Use a 1400×600 crop for a sharp slider."
-            onChange={(event) => setValues((current) => ({ ...current, imageUrl: event.target.value }))}
+            onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))}
           />
           <Input
             label="Title (optional)"

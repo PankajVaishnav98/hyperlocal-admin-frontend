@@ -14,6 +14,7 @@ import {
   rupeesToPaise,
   updateProduct,
 } from '../features/ops/api'
+import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminProduct } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 
@@ -30,6 +31,10 @@ const schema = z.object({
   lowStockThreshold: z.coerce.number().int().min(0),
   inStock: z.boolean(),
   isActive: z.boolean(),
+  costRupees: z.string(),
+  imageUrl: z
+    .string()
+    .refine((value) => value === '' || value.startsWith('https://'), 'Upload an image first'),
 })
 
 function fieldsFrom(product?: AdminProduct) {
@@ -46,6 +51,8 @@ function fieldsFrom(product?: AdminProduct) {
     lowStockThreshold: String(product?.lowStockThreshold ?? 5),
     inStock: product?.inStock ?? true,
     isActive: product?.isActive ?? true,
+    costRupees: product?.costPaise != null ? (product.costPaise / 100).toFixed(2) : '',
+    imageUrl: product?.imageUrl ?? '',
   }
 }
 
@@ -59,7 +66,7 @@ function ProductForm({
   const isNew = !productId
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: listCategories })
+  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -86,6 +93,14 @@ function ProductForm({
         setErrors({ mrpRupees: 'Enter a valid rupee amount' })
         throw new Error('validation')
       }
+      let costPaise: number | null = null
+      if (parsed.data.costRupees.trim()) {
+        costPaise = rupeesToPaise(parsed.data.costRupees)
+        if (!Number.isFinite(costPaise) || costPaise < 0) {
+          setErrors({ costRupees: 'Enter a valid cost, or leave blank' })
+          throw new Error('validation')
+        }
+      }
       setErrors({})
       const payload = {
         categoryId: parsed.data.categoryId,
@@ -100,6 +115,8 @@ function ProductForm({
         lowStockThreshold: parsed.data.lowStockThreshold,
         inStock: parsed.data.inStock,
         isActive: parsed.data.isActive,
+        costPaise,
+        imageUrl: parsed.data.imageUrl || null,
       }
       return isNew ? createProduct(payload) : updateProduct(productId, payload)
     },
@@ -169,6 +186,19 @@ function ProductForm({
             <Input label="Selling price (₹)" value={values.priceRupees} error={errors.priceRupees} onChange={set('priceRupees')} />
             <Input label="MRP (₹)" value={values.mrpRupees} error={errors.mrpRupees} onChange={set('mrpRupees')} />
           </div>
+          <Input
+            label="Cost (₹, optional)"
+            value={values.costRupees}
+            error={errors.costRupees}
+            helperText="Used for platform profit. Leave blank if unknown — profit will be marked incomplete."
+            onChange={set('costRupees')}
+          />
+          <ImageUploadField
+            folder="products"
+            value={values.imageUrl}
+            error={errors.imageUrl}
+            onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))}
+          />
           <div className="grid gap-5 sm:grid-cols-2">
             <Input label="Stock quantity" type="number" value={values.stockQuantity} error={errors.stockQuantity} onChange={set('stockQuantity')} />
             <Input label="Low-stock threshold" type="number" value={values.lowStockThreshold} error={errors.lowStockThreshold} onChange={set('lowStockThreshold')} />
