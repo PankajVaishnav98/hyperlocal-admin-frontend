@@ -8,6 +8,7 @@ import type {
   ServiceAreaPayload,
   AdminOrder,
   AdminOrderAction,
+  AdminReturnAction,
   AdminHomeBanner,
   HomeBannerPayload,
   AnalysisReport,
@@ -230,6 +231,17 @@ export async function transitionOrder(
 ): Promise<AdminOrder> {
   const response = await apiClient.post<Envelope<{ order: AdminOrder }>>(
     `/admin/orders/${encodeURIComponent(id)}/status`,
+    { action },
+  )
+  return response.data.data.order
+}
+
+export async function resolveReturn(
+  id: string,
+  action: AdminReturnAction,
+): Promise<AdminOrder> {
+  const response = await apiClient.post<Envelope<{ order: AdminOrder }>>(
+    `/admin/orders/${encodeURIComponent(id)}/return`,
     { action },
   )
   return response.data.data.order

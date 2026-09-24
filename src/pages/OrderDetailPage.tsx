@@ -5,8 +5,8 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge, Button } from '../components/ui/Primitives'
 import { ErrorState } from '../components/states/SystemStates'
 import { ApiError } from '../api/errors'
-import { formatPaise, getOrder, transitionOrder } from '../features/ops/api'
-import type { AdminOrderAction, OrderStatus } from '../features/ops/types'
+import { formatPaise, getOrder, resolveReturn, transitionOrder } from '../features/ops/api'
+import type { AdminOrderAction, AdminReturnAction, OrderStatus } from '../features/ops/types'
 import { ConfirmDialog, PageHeader, QueryGate } from '../features/ops/ui'
 
 function statusTone(status: OrderStatus) {
@@ -58,10 +58,28 @@ const actionCopy: Record<
   },
 }
 
+const returnCopy: Record<
+  AdminReturnAction,
+  { title: string; description: string; confirmLabel: string }
+> = {
+  complete: {
+    title: 'Complete this return?',
+    description:
+      'Stock for the returned lines is put back. Cash on delivery is not refunded.',
+    confirmLabel: 'Complete return',
+  },
+  reject: {
+    title: 'Reject this return?',
+    description: 'The customer will see that the return was declined. Stock is not restored.',
+    confirmLabel: 'Reject return',
+  },
+}
+
 export function OrderDetailPage() {
   const { orderId = '' } = useParams()
   const queryClient = useQueryClient()
   const [pendingAction, setPendingAction] = useState<AdminOrderAction | null>(null)
+  const [pendingReturn, setPendingReturn] = useState<AdminReturnAction | null>(null)
   const query = useQuery({
     queryKey: ['admin', 'orders', orderId],
     queryFn: () => getOrder(orderId),
@@ -72,6 +90,15 @@ export function OrderDetailPage() {
     onSuccess: async () => {
       setPendingAction(null)
       await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'returns'] })
+    },
+  })
+  const returnMutation = useMutation({
+    mutationFn: (action: AdminReturnAction) => resolveReturn(orderId, action),
+    onSuccess: async () => {
+      setPendingReturn(null)
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'returns'] })
     },
   })
 
@@ -123,15 +150,48 @@ export function OrderDetailPage() {
               </ol>
               {order.returnRequest ? (
                 <div className="mt-4 rounded-xl border border-ink-100 bg-ink-50 p-3">
-                  <p className="text-sm font-semibold text-ink-950">Return requested</p>
+                  <p className="text-sm font-semibold text-ink-950">
+                    {order.returnRequest.status === 'completed'
+                      ? 'Return completed'
+                      : order.returnRequest.status === 'rejected'
+                        ? 'Return declined'
+                        : 'Return requested'}
+                  </p>
                   <p className="mt-1 text-sm text-ink-600">
-                    The customer asked to return this order
-                    {order.returnRequest.reason ? `: ${order.returnRequest.reason}` : '.'} Reverse
-                    logistics is not in this version.
+                    {order.returnRequest.status === 'completed'
+                      ? 'Stock for these lines was restored. Cash on delivery is not refunded.'
+                      : order.returnRequest.status === 'rejected'
+                        ? 'This return request was declined.'
+                        : `The customer asked to return this order${order.returnRequest.reason ? `: ${order.returnRequest.reason}` : '.'}`}
                   </p>
                   <p className="mt-1 text-xs text-ink-500">
                     {new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')}
                   </p>
+                  {order.returnRequest.status === 'return_requested' ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          returnMutation.reset()
+                          setPendingReturn('complete')
+                        }}
+                      >
+                        Complete return
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => {
+                          returnMutation.reset()
+                          setPendingReturn('reject')
+                        }}
+                      >
+                        Reject return
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
@@ -228,6 +288,23 @@ export function OrderDetailPage() {
           }
           onCancel={() => setPendingAction(null)}
           onConfirm={() => transition.mutate(pendingAction)}
+        />
+      ) : null}
+      {pendingReturn ? (
+        <ConfirmDialog
+          title={returnCopy[pendingReturn].title}
+          description={returnCopy[pendingReturn].description}
+          confirmLabel={returnCopy[pendingReturn].confirmLabel}
+          loading={returnMutation.isPending}
+          error={
+            returnMutation.error instanceof ApiError
+              ? returnMutation.error.message
+              : returnMutation.error
+                ? 'Could not update this return.'
+                : null
+          }
+          onCancel={() => setPendingReturn(null)}
+          onConfirm={() => returnMutation.mutate(pendingReturn)}
         />
       ) : null}
     </div>

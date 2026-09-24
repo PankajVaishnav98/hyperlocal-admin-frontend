@@ -1,9 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ReturnsPage } from './ReturnsPage'
+
+const { resolveReturnMock } = vi.hoisted(() => ({ resolveReturnMock: vi.fn() }))
 
 vi.mock('../features/ops/api', () => ({
   formatPaise: (value: number) => `₹${(value / 100).toFixed(0)}`,
@@ -30,13 +33,16 @@ vi.mock('../features/ops/api', () => ({
         },
       },
     ]),
+  resolveReturn: (...args: unknown[]) => resolveReturnMock(...args),
 }))
 
 describe('ReturnsPage', () => {
-  it('lists return_requested orders', async () => {
+  it('lists return_requested orders and can complete a return', async () => {
+    resolveReturnMock.mockResolvedValue({ id: 'ord_return_1' })
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     })
+    const user = userEvent.setup()
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
@@ -48,6 +54,12 @@ describe('ReturnsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Returns' })).toBeInTheDocument()
     expect(await screen.findByText('HL-20260924-111111')).toBeInTheDocument()
     expect(screen.getByText('Wrong item')).toBeInTheDocument()
-    expect(screen.getByText('Return requested')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Complete' }))
+    expect(await screen.findByRole('dialog', { name: 'Complete this return?' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Complete return' }))
+    expect(resolveReturnMock).toHaveBeenCalledWith('ord_return_1', 'complete')
   })
 })

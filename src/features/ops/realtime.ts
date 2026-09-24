@@ -8,6 +8,8 @@ const ORDER_EVENTS = [
   'order:cancelled',
   'order:completed',
   'order:return_requested',
+  'order:return_completed',
+  'order:return_rejected',
 ] as const
 
 function socketOrigin(): string {
@@ -36,6 +38,7 @@ export function useAdminOrderSocket(enabled: boolean) {
 
     const refreshOrders = () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'returns'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'analysis'] })
     }
 
