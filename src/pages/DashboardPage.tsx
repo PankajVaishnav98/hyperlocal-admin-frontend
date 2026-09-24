@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 
 import { EmptyState, ErrorState, LoadingState } from '../components/states/SystemStates'
 import { Badge, Card } from '../components/ui/Primitives'
-import { listCategories, listOrders, listProducts, listServiceAreas } from '../features/ops/api'
+import { countOrders, listCategories, listOrders, listProducts, listServiceAreas } from '../features/ops/api'
 
 const modules = [
   {
@@ -61,14 +61,23 @@ const modules = [
 ]
 
 export function DashboardPage() {
-  const orders = useQuery({ queryKey: ['admin', 'orders'], queryFn: listOrders })
+  const orders = useQuery({ queryKey: ['admin', 'orders'], queryFn: () => listOrders({ limit: 100 }) })
+  const waitingCount = useQuery({
+    queryKey: ['admin', 'orders', 'count', 'placed'],
+    queryFn: () => countOrders('placed'),
+  })
+  const inProgressCount = useQuery({
+    queryKey: ['admin', 'orders', 'count', 'accepted'],
+    queryFn: () => countOrders('accepted'),
+  })
   const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
   const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
   const areas = useQuery({ queryKey: ['admin', 'service-areas'], queryFn: listServiceAreas })
 
-  const placed = (orders.data ?? []).filter((order) => order.status === 'placed').length
-  const accepted = (orders.data ?? []).filter((order) => order.status === 'accepted').length
-  const overviewError = orders.error ?? products.error ?? categories.error ?? areas.error
+  const placed = waitingCount.data ?? 0
+  const accepted = inProgressCount.data ?? 0
+  const overviewError =
+    waitingCount.error ?? inProgressCount.error ?? products.error ?? categories.error ?? areas.error
 
   return (
     <div className="space-y-7">
@@ -89,13 +98,17 @@ export function DashboardPage() {
         </p>
       </section>
 
-      {orders.isLoading && products.isLoading ? (
+      {waitingCount.isLoading || inProgressCount.isLoading || products.isLoading ? (
+        <LoadingState label="Loading operations summary" rows={2} />
+      ) : overviewError ? (
         <LoadingState label="Loading operations summary" rows={2} />
       ) : overviewError ? (
         <ErrorState
           title="Could not load the overview"
           description={overviewError instanceof Error ? overviewError.message : 'Please try again.'}
           onRetry={() => {
+            void waitingCount.refetch()
+            void inProgressCount.refetch()
             void orders.refetch()
             void products.refetch()
             void categories.refetch()

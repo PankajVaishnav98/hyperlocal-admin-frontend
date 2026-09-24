@@ -42,6 +42,10 @@ export function ImageUploadField({
         return null
       })
     } catch (caught) {
+      setLocalPreview((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return null
+      })
       setUploadError(caught instanceof ApiError ? caught.message : 'Could not upload this image.')
     } finally {
       setUploading(false)
@@ -68,7 +72,11 @@ export function ImageUploadField({
         type="file"
         accept="image/jpeg,image/png,image/webp"
         disabled={uploading}
-        onChange={(event) => void onFile(event.target.files?.[0])}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void onFile(file)
+        }}
         className="block w-full text-sm text-ink-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-800"
       />
       <p className="text-xs text-ink-500">

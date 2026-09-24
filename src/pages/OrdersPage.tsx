@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
@@ -33,7 +34,12 @@ function statusLabel(status: OrderStatus) {
 }
 
 export function OrdersPage() {
-  const query = useQuery({ queryKey: ['admin', 'orders'], queryFn: listOrders })
+  const [status, setStatus] = useState<'all' | OrderStatus>('all')
+  const query = useQuery({
+    queryKey: ['admin', 'orders', status],
+    queryFn: () => listOrders(status === 'all' ? { limit: 100 } : { status, limit: 100 }),
+    placeholderData: keepPreviousData,
+  })
 
   return (
     <div className="space-y-6">
@@ -41,13 +47,29 @@ export function OrdersPage() {
         title="Orders"
         description="Cash-on-delivery tickets. Accept, reject, or mark delivered from the order page. Live rider GPS is not available."
       />
+      <select
+        value={status}
+        onChange={(event) => setStatus(event.target.value as 'all' | OrderStatus)}
+        className="h-11 w-full max-w-xs rounded-xl border border-ink-200 px-3.5 text-sm"
+        aria-label="Filter orders by status"
+      >
+        <option value="all">All statuses</option>
+        <option value="placed">Placed</option>
+        <option value="accepted">Accepted</option>
+        <option value="completed">Delivered</option>
+        <option value="cancelled">Rejected</option>
+      </select>
       <QueryGate
         isLoading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
         isEmpty={(query.data?.length ?? 0) === 0}
-        emptyTitle="No COD orders yet"
-        emptyDescription="When a customer places a cash-on-delivery order, it will appear here."
+        emptyTitle={status === 'all' ? 'No COD orders yet' : 'No orders with this status'}
+        emptyDescription={
+          status === 'all'
+            ? 'When a customer places a cash-on-delivery order, it will appear here.'
+            : 'Try another status filter.'
+        }
       >
         <DataTable columns={['Order', 'Customer', 'Total', 'Status', 'Placed']}>
           {query.data?.map((order) => (

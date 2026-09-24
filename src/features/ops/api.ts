@@ -12,6 +12,7 @@ import type {
   HomeBannerPayload,
   AnalysisReport,
   ImageFolder,
+  OrderStatus,
 } from './types'
 
 type Envelope<T> = { success: boolean; data: T; meta?: { total?: number; limit?: number; offset?: number } }
@@ -137,11 +138,29 @@ export async function disableServiceArea(id: string): Promise<ServiceArea> {
   return response.data.data.serviceArea
 }
 
-export async function listOrders(): Promise<AdminOrder[]> {
+export async function listOrders(query?: {
+  status?: OrderStatus
+  limit?: number
+}): Promise<AdminOrder[]> {
   const response = await apiClient.get<Envelope<{ orders: AdminOrder[] }>>('/admin/orders', {
-    params: { limit: 50, offset: 0 },
+    params: {
+      limit: query?.limit ?? 100,
+      offset: 0,
+      ...(query?.status ? { status: query.status } : {}),
+    },
   })
   return response.data.data.orders
+}
+
+export async function countOrders(status?: OrderStatus): Promise<number> {
+  const response = await apiClient.get<Envelope<{ orders: AdminOrder[] }>>('/admin/orders', {
+    params: {
+      limit: 1,
+      offset: 0,
+      ...(status ? { status } : {}),
+    },
+  })
+  return response.data.meta?.total ?? response.data.data.orders.length
 }
 
 export async function getOrder(id: string): Promise<AdminOrder> {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
@@ -16,6 +16,7 @@ import {
 } from '../features/ops/ui'
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { AdminProduct } from '../features/ops/types'
+import { useDebouncedValue } from '../utils/useDebouncedValue'
 
 const inventoryTone = {
   IN_STOCK: 'success',
@@ -29,15 +30,18 @@ export function ProductsPage() {
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const debouncedQ = useDebouncedValue(q)
+  const hasFilters = Boolean(q.trim() || categoryId || active !== 'all')
   const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
   const products = useQuery({
-    queryKey: ['admin', 'products', q, categoryId, active],
+    queryKey: ['admin', 'products', debouncedQ, categoryId, active],
     queryFn: () =>
       listProducts({
-        ...(q.trim() ? { q: q.trim() } : {}),
+        ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
         ...(categoryId ? { categoryId } : {}),
         ...(active === 'all' ? {} : { active }),
       }),
+    placeholderData: keepPreviousData,
   })
   const confirm = useConfirmTarget<AdminProduct>()
   const disable = useMutation({
@@ -90,9 +94,13 @@ export function ProductsPage() {
         error={products.error}
         onRetry={() => void products.refetch()}
         isEmpty={(products.data?.length ?? 0) === 0}
-        emptyTitle="No products yet"
-        emptyDescription="Add grocery items after at least one category exists."
-        emptyAction={<PrimaryLink to="/products/new">New product</PrimaryLink>}
+        emptyTitle={hasFilters ? 'No matching products' : 'No products yet'}
+        emptyDescription={
+          hasFilters
+            ? 'Try a different search, category, or active filter.'
+            : 'Add grocery items after at least one category exists.'
+        }
+        emptyAction={hasFilters ? undefined : <PrimaryLink to="/products/new">New product</PrimaryLink>}
       >
         <DataTable columns={['Product', 'Category', 'Price', 'Stock', 'Status', '']}>
           {products.data?.map((product) => (
