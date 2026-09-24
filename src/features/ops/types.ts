@@ -52,6 +52,8 @@ export type ServiceArea = {
   name: string
   pincode: string
   perKmFeePaise: number
+  centerLatitude?: number
+  centerLongitude?: number
   isActive: boolean
 }
 
@@ -62,6 +64,8 @@ export type ServiceAreaPayload = {
   pincode: string
   perKmFeePaise: number
   isActive: boolean
+  centerLatitude?: number | null
+  centerLongitude?: number | null
 }
 
 export type OrderStatus = 'placed' | 'accepted' | 'cancelled' | 'completed'

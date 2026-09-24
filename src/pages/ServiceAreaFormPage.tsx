@@ -15,11 +15,14 @@ import {
 } from '../features/ops/api'
 import type { ServiceArea } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
+import { parseOptionalHub } from '../features/ops/serviceAreaHub'
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Required'),
   pincode: z.string().trim().regex(/^\d{6}$/, 'Enter a 6-digit PIN code'),
   perKmRupees: z.string().min(1),
+  hubLatitude: z.string(),
+  hubLongitude: z.string(),
   isActive: z.boolean(),
 })
 
@@ -28,6 +31,8 @@ function fieldsFrom(area?: ServiceArea) {
     name: area?.name ?? '',
     pincode: area?.pincode ?? '',
     perKmRupees: area ? (area.perKmFeePaise / 100).toFixed(2) : '20',
+    hubLatitude: area?.centerLatitude !== undefined ? String(area.centerLatitude) : '',
+    hubLongitude: area?.centerLongitude !== undefined ? String(area.centerLongitude) : '',
     isActive: area?.isActive ?? true,
   }
 }
@@ -64,11 +69,21 @@ function ServiceAreaForm({
         throw new Error('validation')
       }
       setErrors({})
+      const hub = parseOptionalHub(parsed.data.hubLatitude, parsed.data.hubLongitude)
+      if (!hub.ok) {
+        setErrors(hub.errors)
+        throw new Error('validation')
+      }
       const payload = {
         name: parsed.data.name,
         pincode: parsed.data.pincode,
         perKmFeePaise,
         isActive: parsed.data.isActive,
+        ...(hub.hub
+          ? hub.hub
+          : !isNew
+            ? { centerLatitude: null, centerLongitude: null }
+            : {}),
       }
       return isNew ? createServiceArea(payload) : updateServiceArea(serviceAreaId, payload)
     },
@@ -104,7 +119,7 @@ function ServiceAreaForm({
     <div className="space-y-6">
       <PageHeader
         title={isNew ? 'New service area' : 'Edit service area'}
-        description="Checkout matches the customer address PIN code, then charges this rate per billed kilometre."
+        description="Checkout matches the customer address PIN code, then charges this rate per billed kilometre from the hub when coordinates are saved."
       />
       <Card className="max-w-xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
@@ -124,6 +139,19 @@ function ServiceAreaForm({
             error={errors.perKmRupees}
             helperText="Applied to billed distance, with a one-kilometre minimum."
             onChange={set('perKmRupees')}
+          />
+          <Input
+            label="Hub latitude"
+            value={values.hubLatitude}
+            error={errors.hubLatitude}
+            helperText="Optional. Used for per-kilometre distance. Leave blank with longitude to keep the one-kilometre PIN fallback."
+            onChange={set('hubLatitude')}
+          />
+          <Input
+            label="Hub longitude"
+            value={values.hubLongitude}
+            error={errors.hubLongitude}
+            onChange={set('hubLongitude')}
           />
           <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
             <input

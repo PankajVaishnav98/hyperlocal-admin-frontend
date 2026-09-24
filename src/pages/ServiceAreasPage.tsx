@@ -43,7 +43,7 @@ export function ServiceAreasPage() {
         emptyDescription="Add a PIN code and per-kilometre charge before taking orders."
         emptyAction={<PrimaryLink to="/service-areas/new">New service area</PrimaryLink>}
       >
-        <DataTable columns={['Area', 'PIN', 'Per km', 'Status', '']}>
+        <DataTable columns={['Area', 'PIN', 'Hub', 'Per km', 'Status', '']}>
           {query.data?.map((area) => (
             <tr key={area.id} className="text-ink-800">
               <td className="px-4 py-3">
@@ -52,6 +52,11 @@ export function ServiceAreasPage() {
                 </Link>
               </td>
               <td className="px-4 py-3 font-mono text-sm">{area.pincode}</td>
+              <td className="px-4 py-3 text-sm">
+                {typeof area.centerLatitude === 'number' && typeof area.centerLongitude === 'number'
+                  ? `${area.centerLatitude.toFixed(4)}, ${area.centerLongitude.toFixed(4)}`
+                  : 'PIN only'}
+              </td>
               <td className="px-4 py-3">{formatPaise(area.perKmFeePaise)}</td>
               <td className="px-4 py-3">
                 <ActiveBadge active={area.isActive} />
