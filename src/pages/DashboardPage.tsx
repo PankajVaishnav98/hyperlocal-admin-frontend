@@ -70,8 +70,14 @@ export function DashboardPage() {
     queryKey: ['admin', 'orders', 'count', 'accepted'],
     queryFn: () => countOrders('accepted'),
   })
-  const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
+  const products = useQuery({
+    queryKey: ['admin', 'products', 'summary'],
+    queryFn: () => listProducts({ page: 1, limit: 1 }),
+  })
+  const categories = useQuery({
+    queryKey: ['admin', 'categories', 'summary'],
+    queryFn: () => listCategories({ page: 1, limit: 1 }),
+  })
   const areas = useQuery({ queryKey: ['admin', 'service-areas'], queryFn: listServiceAreas })
 
   const placed = waitingCount.data ?? 0
@@ -130,9 +136,9 @@ export function DashboardPage() {
           <Card className="p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Catalog</p>
             <p className="mt-2 font-display text-3xl font-semibold text-ink-950">
-              {products.data?.length ?? 0}
+              {products.data?.meta.total ?? 0}
             </p>
-            <p className="mt-1 text-sm text-ink-600">{categories.data?.length ?? 0} categories</p>
+            <p className="mt-1 text-sm text-ink-600">{categories.data?.meta.total ?? 0} categories</p>
           </Card>
           <Card className="p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Coverage</p>

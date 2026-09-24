@@ -4,12 +4,19 @@ import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
-import { disableProduct, formatPaise, listCategories, listProducts } from '../features/ops/api'
+import {
+  ADMIN_LIST_PAGE_SIZE,
+  disableProduct,
+  formatPaise,
+  listCategoryOptions,
+  listProducts,
+} from '../features/ops/api'
 import {
   ActiveBadge,
   ConfirmDialog,
   DataTable,
   PageHeader,
+  PaginationBar,
   PrimaryLink,
   QueryGate,
   RowActions,
@@ -17,6 +24,7 @@ import {
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { AdminProduct } from '../features/ops/types'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
+import { useResettingPage } from '../utils/useResettingPage'
 
 const inventoryTone = {
   IN_STOCK: 'success',
@@ -32,11 +40,17 @@ export function ProductsPage() {
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
   const debouncedQ = useDebouncedValue(q)
   const hasFilters = Boolean(q.trim() || categoryId || active !== 'all')
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
+  const [page, setPage] = useResettingPage(`${debouncedQ}|${categoryId}|${active}`)
+  const categories = useQuery({
+    queryKey: ['admin', 'categories', 'options'],
+    queryFn: listCategoryOptions,
+  })
   const products = useQuery({
-    queryKey: ['admin', 'products', debouncedQ, categoryId, active],
+    queryKey: ['admin', 'products', page, debouncedQ, categoryId, active],
     queryFn: () =>
       listProducts({
+        page,
+        limit: ADMIN_LIST_PAGE_SIZE,
         ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
         ...(categoryId ? { categoryId } : {}),
         ...(active === 'all' ? {} : { active }),
@@ -48,10 +62,14 @@ export function ProductsPage() {
     mutationFn: disableProduct,
     onSuccess: async () => {
       confirm.close()
+      if ((products.data?.items.length ?? 0) <= 1 && page > 1) {
+        setPage(page - 1)
+      }
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
     },
   })
   const categoryName = new Map((categories.data ?? []).map((category) => [category.id, category.nameEn]))
+  const meta = products.data?.meta
 
   return (
     <div className="space-y-6">
@@ -93,7 +111,7 @@ export function ProductsPage() {
         isLoading={products.isLoading}
         error={products.error}
         onRetry={() => void products.refetch()}
-        isEmpty={(products.data?.length ?? 0) === 0}
+        isEmpty={(meta?.total ?? 0) === 0}
         emptyTitle={hasFilters ? 'No matching products' : 'No products yet'}
         emptyDescription={
           hasFilters
@@ -102,54 +120,67 @@ export function ProductsPage() {
         }
         emptyAction={hasFilters ? undefined : <PrimaryLink to="/products/new">New product</PrimaryLink>}
       >
-        <DataTable columns={['Product', 'Category', 'Price', 'Stock', 'Status', '']}>
-          {products.data?.map((product) => (
-            <tr key={product.id} className="text-ink-800">
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  {product.imageUrl ? (
-                    <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                  ) : (
-                    <span className="h-10 w-10 rounded-lg bg-ink-100" />
-                  )}
-                  <div>
-                    <Link className="font-semibold text-ink-950 hover:underline" to={`/products/${product.id}`}>
-                      {product.nameEn}
-                    </Link>
-                    <p className="text-xs text-ink-500">
-                      {product.nameHi} · {product.unit} · {product.sku}
-                    </p>
+        <div className="space-y-4">
+          <DataTable columns={['Product', 'Category', 'Price', 'Stock', 'Status', '']}>
+            {products.data?.items.map((product) => (
+              <tr key={product.id} className="text-ink-800">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                    ) : (
+                      <span className="h-10 w-10 rounded-lg bg-ink-100" />
+                    )}
+                    <div>
+                      <Link className="font-semibold text-ink-950 hover:underline" to={`/products/${product.id}`}>
+                        {product.nameEn}
+                      </Link>
+                      <p className="text-xs text-ink-500">
+                        {product.nameHi} · {product.unit} · {product.sku}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="px-4 py-3">{categoryName.get(product.categoryId) ?? product.categoryId}</td>
-              <td className="px-4 py-3">
-                {formatPaise(product.pricePaise)}
-                <p className="text-xs text-ink-500">MRP {formatPaise(product.mrpPaise)}</p>
-              </td>
-              <td className="px-4 py-3">{product.stockQuantity}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-2">
-                  <ActiveBadge active={product.isActive} />
-                  <Badge tone={inventoryTone[product.inventoryStatus]}>
-                    {product.inventoryStatus.replaceAll('_', ' ').toLowerCase()}
-                  </Badge>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <RowActions
-                  editTo={`/products/${product.id}`}
-                  deleteDisabled={!product.isActive}
-                  deleting={disable.isPending && confirm.target?.id === product.id}
-                  onDelete={() => {
-                    disable.reset()
-                    confirm.open(product)
-                  }}
-                />
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+                </td>
+                <td className="px-4 py-3">{categoryName.get(product.categoryId) ?? product.categoryId}</td>
+                <td className="px-4 py-3">
+                  {formatPaise(product.pricePaise)}
+                  <p className="text-xs text-ink-500">MRP {formatPaise(product.mrpPaise)}</p>
+                </td>
+                <td className="px-4 py-3">{product.stockQuantity}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <ActiveBadge active={product.isActive} />
+                    <Badge tone={inventoryTone[product.inventoryStatus]}>
+                      {product.inventoryStatus.replaceAll('_', ' ').toLowerCase()}
+                    </Badge>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <RowActions
+                    editTo={`/products/${product.id}`}
+                    deleteDisabled={!product.isActive}
+                    deleting={disable.isPending && confirm.target?.id === product.id}
+                    onDelete={() => {
+                      disable.reset()
+                      confirm.open(product)
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+          {meta ? (
+            <PaginationBar
+              page={meta.page}
+              limit={meta.limit}
+              total={meta.total}
+              totalPages={meta.totalPages}
+              hasNextPage={meta.hasNextPage}
+              hasPreviousPage={meta.hasPreviousPage}
+              onPageChange={setPage}
+            />
+          ) : null}
+        </div>
       </QueryGate>
       {confirm.target ? (
         <ConfirmDialog

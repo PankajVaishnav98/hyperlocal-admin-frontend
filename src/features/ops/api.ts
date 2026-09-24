@@ -13,18 +13,56 @@ import type {
   AnalysisReport,
   ImageFolder,
   OrderStatus,
+  PagedList,
+  PaginationMeta,
 } from './types'
 
-type Envelope<T> = { success: boolean; data: T; meta?: { total?: number; limit?: number; offset?: number } }
+type Envelope<T> = {
+  success: boolean
+  data: T
+  meta?: PaginationMeta & { total?: number; limit?: number; offset?: number }
+}
+
+export const ADMIN_LIST_PAGE_SIZE = 25
+
+function paged<T>(items: T[], meta?: Envelope<unknown>['meta']): PagedList<T> {
+  const total = meta?.total ?? items.length
+  const limit = meta?.limit ?? ADMIN_LIST_PAGE_SIZE
+  const page = meta?.page ?? 1
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: meta?.totalPages ?? (limit > 0 && total > 0 ? Math.ceil(total / limit) : 0),
+      hasNextPage: meta?.hasNextPage ?? page * limit < total,
+      hasPreviousPage: meta?.hasPreviousPage ?? page > 1,
+      offset: meta?.offset,
+    },
+  }
+}
 
 export async function listCategories(query?: {
   q?: string
   active?: 'true' | 'false'
-}): Promise<AdminCategory[]> {
+  page?: number
+  limit?: number
+}): Promise<PagedList<AdminCategory>> {
   const response = await apiClient.get<Envelope<{ categories: AdminCategory[] }>>('/admin/categories', {
-    params: query,
+    params: {
+      page: query?.page ?? 1,
+      limit: query?.limit ?? ADMIN_LIST_PAGE_SIZE,
+      ...(query?.q ? { q: query.q } : {}),
+      ...(query?.active ? { active: query.active } : {}),
+    },
   })
-  return response.data.data.categories
+  return paged(response.data.data.categories, response.data.meta)
+}
+
+export async function listCategoryOptions(): Promise<AdminCategory[]> {
+  const result = await listCategories({ page: 1, limit: 100 })
+  return result.items
 }
 
 export async function getCategory(id: string): Promise<AdminCategory> {
@@ -61,11 +99,25 @@ export async function listProducts(query?: {
   q?: string
   categoryId?: string
   active?: 'true' | 'false'
-}): Promise<AdminProduct[]> {
+  page?: number
+  limit?: number
+}): Promise<PagedList<AdminProduct>> {
   const response = await apiClient.get<Envelope<{ products: AdminProduct[] }>>('/admin/products', {
-    params: { limit: 100, offset: 0, includeInactive: 'true', ...query },
+    params: {
+      page: query?.page ?? 1,
+      limit: query?.limit ?? ADMIN_LIST_PAGE_SIZE,
+      includeInactive: 'true',
+      ...(query?.q ? { q: query.q } : {}),
+      ...(query?.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query?.active ? { active: query.active } : {}),
+    },
   })
-  return response.data.data.products
+  return paged(response.data.data.products, response.data.meta)
+}
+
+export async function listProductOptions(): Promise<AdminProduct[]> {
+  const result = await listProducts({ page: 1, limit: 100 })
+  return result.items
 }
 
 export async function getProduct(id: string): Promise<AdminProduct> {

@@ -22,8 +22,32 @@ vi.mock('../features/ops/api', () => ({
   getOrder: () => Promise.reject(new Error('not used')),
   listHomeBanners: () => Promise.resolve([]),
   disableHomeBanner: () => Promise.resolve({ id: 'ban_1', isActive: false }),
-  listCategories: () => Promise.resolve([]),
-  listProducts: () => Promise.resolve([]),
+  listCategories: () =>
+    Promise.resolve({
+      items: [],
+      meta: {
+        page: 1,
+        limit: 25,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    }),
+  listCategoryOptions: () => Promise.resolve([]),
+  listProducts: () =>
+    Promise.resolve({
+      items: [],
+      meta: {
+        page: 1,
+        limit: 25,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    }),
+  listProductOptions: () => Promise.resolve([]),
   listServiceAreas: () => Promise.resolve([]),
   getAnalysis: () => Promise.resolve(null),
 }))

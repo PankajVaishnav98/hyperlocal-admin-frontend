@@ -3,12 +3,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/errors'
-import { disableCategory, listCategories } from '../features/ops/api'
+import { ADMIN_LIST_PAGE_SIZE, disableCategory, listCategories } from '../features/ops/api'
 import {
   ActiveBadge,
   ConfirmDialog,
   DataTable,
   PageHeader,
+  PaginationBar,
   PrimaryLink,
   QueryGate,
   RowActions,
@@ -16,6 +17,7 @@ import {
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { AdminCategory } from '../features/ops/types'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
+import { useResettingPage } from '../utils/useResettingPage'
 
 export function CategoriesPage() {
   const queryClient = useQueryClient()
@@ -23,10 +25,13 @@ export function CategoriesPage() {
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
   const debouncedQ = useDebouncedValue(q)
   const hasFilters = Boolean(q.trim() || active !== 'all')
+  const [page, setPage] = useResettingPage(`${debouncedQ}|${active}`)
   const query = useQuery({
-    queryKey: ['admin', 'categories', debouncedQ, active],
+    queryKey: ['admin', 'categories', page, debouncedQ, active],
     queryFn: () =>
       listCategories({
+        page,
+        limit: ADMIN_LIST_PAGE_SIZE,
         ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
         ...(active === 'all' ? {} : { active }),
       }),
@@ -37,9 +42,13 @@ export function CategoriesPage() {
     mutationFn: disableCategory,
     onSuccess: async () => {
       confirm.close()
+      if ((query.data?.items.length ?? 0) <= 1 && page > 1) {
+        setPage(page - 1)
+      }
       await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
     },
   })
+  const meta = query.data?.meta
 
   return (
     <div className="space-y-6">
@@ -69,7 +78,7 @@ export function CategoriesPage() {
         isLoading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
-        isEmpty={(query.data?.length ?? 0) === 0}
+        isEmpty={(meta?.total ?? 0) === 0}
         emptyTitle={hasFilters ? 'No matching categories' : 'No categories yet'}
         emptyDescription={
           hasFilters
@@ -78,43 +87,56 @@ export function CategoriesPage() {
         }
         emptyAction={hasFilters ? undefined : <PrimaryLink to="/categories/new">New category</PrimaryLink>}
       >
-        <DataTable columns={['Name', 'Slug', 'Order', 'Status', '']}>
-          {query.data?.map((category) => (
-            <tr key={category.id} className="text-ink-800">
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  {category.imageUrl ? (
-                    <img src={category.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                  ) : (
-                    <span className="h-10 w-10 rounded-lg bg-ink-100" />
-                  )}
-                  <div>
-                    <Link className="font-semibold text-ink-950 hover:underline" to={`/categories/${category.id}`}>
-                      {category.nameEn}
-                    </Link>
-                    <p className="text-xs text-ink-500">{category.nameHi}</p>
+        <div className="space-y-4">
+          <DataTable columns={['Name', 'Slug', 'Order', 'Status', '']}>
+            {query.data?.items.map((category) => (
+              <tr key={category.id} className="text-ink-800">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {category.imageUrl ? (
+                      <img src={category.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                    ) : (
+                      <span className="h-10 w-10 rounded-lg bg-ink-100" />
+                    )}
+                    <div>
+                      <Link className="font-semibold text-ink-950 hover:underline" to={`/categories/${category.id}`}>
+                        {category.nameEn}
+                      </Link>
+                      <p className="text-xs text-ink-500">{category.nameHi}</p>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="px-4 py-3 font-mono text-xs">{category.slug}</td>
-              <td className="px-4 py-3">{category.sortOrder}</td>
-              <td className="px-4 py-3">
-                <ActiveBadge active={category.isActive} />
-              </td>
-              <td className="px-4 py-3 text-right">
-                <RowActions
-                  editTo={`/categories/${category.id}`}
-                  deleteDisabled={!category.isActive}
-                  deleting={disable.isPending && confirm.target?.id === category.id}
-                  onDelete={() => {
-                    disable.reset()
-                    confirm.open(category)
-                  }}
-                />
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs">{category.slug}</td>
+                <td className="px-4 py-3">{category.sortOrder}</td>
+                <td className="px-4 py-3">
+                  <ActiveBadge active={category.isActive} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <RowActions
+                    editTo={`/categories/${category.id}`}
+                    deleteDisabled={!category.isActive}
+                    deleting={disable.isPending && confirm.target?.id === category.id}
+                    onDelete={() => {
+                      disable.reset()
+                      confirm.open(category)
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+          {meta ? (
+            <PaginationBar
+              page={meta.page}
+              limit={meta.limit}
+              total={meta.total}
+              totalPages={meta.totalPages}
+              hasNextPage={meta.hasNextPage}
+              hasPreviousPage={meta.hasPreviousPage}
+              onPageChange={setPage}
+            />
+          ) : null}
+        </div>
       </QueryGate>
       {confirm.target ? (
         <ConfirmDialog

@@ -10,7 +10,7 @@ import {
   createProduct,
   disableProduct,
   getProduct,
-  listCategories,
+  listCategoryOptions,
   rupeesToPaise,
   updateProduct,
 } from '../features/ops/api'
@@ -66,7 +66,7 @@ function ProductForm({
   const isNew = !productId
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
+  const categories = useQuery({ queryKey: ['admin', 'categories', 'options'], queryFn: listCategoryOptions })
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)

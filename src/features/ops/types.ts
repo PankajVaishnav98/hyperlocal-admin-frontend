@@ -10,6 +10,21 @@ export type AdminCategory = {
   isActive: boolean
 }
 
+export type PaginationMeta = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  offset?: number
+}
+
+export type PagedList<T> = {
+  items: T[]
+  meta: PaginationMeta
+}
+
 export type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISABLED'
 
 export type AdminProduct = {

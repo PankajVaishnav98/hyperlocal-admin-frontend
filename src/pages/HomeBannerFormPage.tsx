@@ -9,8 +9,8 @@ import { ApiError } from '../api/errors'
 import {
   createHomeBanner,
   getHomeBanner,
-  listCategories,
-  listProducts,
+  listCategoryOptions,
+  listProductOptions,
   updateHomeBanner,
 } from '../features/ops/api'
 import { ImageUploadField } from '../features/ops/ImageUpload'
@@ -67,8 +67,8 @@ function HomeBannerForm({
   const [values, setValues] = useState(() => fieldsFrom(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const categories = useQuery({ queryKey: ['admin', 'categories'], queryFn: () => listCategories() })
-  const products = useQuery({ queryKey: ['admin', 'products'], queryFn: () => listProducts() })
+  const categories = useQuery({ queryKey: ['admin', 'categories', 'options'], queryFn: listCategoryOptions })
+  const products = useQuery({ queryKey: ['admin', 'products', 'options'], queryFn: listProductOptions })
   const save = useMutation({
     mutationFn: async () => {
       const parsed = schema.safeParse(values)

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../../components/states/SystemStates'
 import { Badge, Button, Card } from '../../components/ui/Primitives'
 import { cn } from '../../utils/cn'
+import { visiblePageNumbers } from '../../utils/visiblePageNumbers'
 
 export function PrimaryLink({
   to,
@@ -89,6 +90,74 @@ export function QueryGate({
     )
   }
   return <>{children}</>
+}
+
+export function PaginationBar({
+  page,
+  limit,
+  total,
+  totalPages,
+  hasNextPage,
+  hasPreviousPage,
+  onPageChange,
+}: {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  onPageChange: (page: number) => void
+}) {
+  if (total === 0) return null
+  const from = (page - 1) * limit + 1
+  const to = Math.min(page * limit, total)
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-ink-600">
+        Showing {from}–{to} of {total}
+      </p>
+      <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!hasPreviousPage}
+          onClick={() => onPageChange(page - 1)}
+        >
+          Previous
+        </Button>
+        {visiblePageNumbers(page, totalPages).map((item, index) =>
+          item === 'gap' ? (
+            <span key={`gap-${index}`} className="px-2 text-sm text-ink-400">
+              …
+            </span>
+          ) : (
+            <Button
+              key={item}
+              type="button"
+              variant={item === page ? 'primary' : 'ghost'}
+              size="sm"
+              aria-current={item === page ? 'page' : undefined}
+              onClick={() => onPageChange(item)}
+            >
+              {item}
+            </Button>
+          ),
+        )}
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!hasNextPage}
+          onClick={() => onPageChange(page + 1)}
+        >
+          Next
+        </Button>
+      </nav>
+    </div>
+  )
 }
 
 export function DataTable({
