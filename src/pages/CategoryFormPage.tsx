@@ -21,7 +21,7 @@ const schema = z.object({
   isActive: z.boolean(),
   imageUrl: z
     .string()
-    .refine((value) => value === '' || value.startsWith('https://'), 'Upload an image first'),
+    .refine((value) => value === '' || value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
 })
 
 function fieldsFrom(category?: AdminCategory) {

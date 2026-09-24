@@ -34,7 +34,7 @@ const schema = z.object({
   costRupees: z.string(),
   imageUrl: z
     .string()
-    .refine((value) => value === '' || value.startsWith('https://'), 'Upload an image first'),
+    .refine((value) => value === '' || value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
 })
 
 function fieldsFrom(product?: AdminProduct) {

@@ -23,7 +23,7 @@ const schema = z
       .string()
       .trim()
       .url('Use a full https URL')
-      .refine((value) => value.startsWith('https://'), 'Image URL must use https'),
+      .refine((value) => value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
     title: z.string().trim().max(80),
     subtitle: z.string().trim().max(160),
     linkType: z.enum(['none', 'category', 'product']),
