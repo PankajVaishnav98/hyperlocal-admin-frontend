@@ -101,11 +101,11 @@ export function DashboardPage() {
       {waitingCount.isLoading || inProgressCount.isLoading || products.isLoading ? (
         <LoadingState label="Loading operations summary" rows={2} />
       ) : overviewError ? (
-        <LoadingState label="Loading operations summary" rows={2} />
-      ) : overviewError ? (
         <ErrorState
           title="Could not load the overview"
-          description={overviewError instanceof Error ? overviewError.message : 'Please try again.'}
+          description={
+            overviewError instanceof Error ? overviewError.message : 'Please try again.'
+          }
           onRetry={() => {
             void waitingCount.refetch()
             void inProgressCount.refetch()
