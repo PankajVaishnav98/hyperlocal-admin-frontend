@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState, ErrorState, LoadingState } from '../../components/states/SystemStates'
@@ -168,6 +168,18 @@ export function ConfirmDialog({
   onCancel: () => void
 }) {
   const titleId = useId()
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !loading) {
+        event.preventDefault()
+        onCancel()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [loading, onCancel])
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center px-4">
       <button

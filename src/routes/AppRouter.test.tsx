@@ -18,6 +18,7 @@ vi.mock('../features/auth/sessionService', async () => {
 })
 vi.mock('../features/ops/api', () => ({
   listOrders: () => Promise.resolve([]),
+  countOrders: () => Promise.resolve(0),
   getOrder: () => Promise.reject(new Error('not used')),
   listHomeBanners: () => Promise.resolve([]),
   disableHomeBanner: () => Promise.resolve({ id: 'ban_1', isActive: false }),

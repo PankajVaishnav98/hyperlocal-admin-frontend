@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   Bar,
   BarChart,
@@ -58,6 +58,7 @@ export function AnalysisPage() {
   const query = useQuery({
     queryKey: ['admin', 'analysis', from, to, timeZone],
     queryFn: () => getAnalysis({ from, to, timeZone }),
+    placeholderData: keepPreviousData,
   })
   const heatMax = useMemo(() => {
     return Math.max(1, ...(query.data?.heatmap.map((cell) => cell.count) ?? [0]))
@@ -90,7 +91,7 @@ export function AnalysisPage() {
         </label>
         <p className="pb-2 text-xs text-ink-500">Times use {timeZone}. Live order events refresh this page.</p>
       </Card>
-      {query.isLoading ? <LoadingState label="Loading analysis" /> : null}
+      {query.isLoading && !query.data ? <LoadingState label="Loading analysis" /> : null}
       {query.error ? (
         <ErrorState title="Could not load analysis" onRetry={() => void query.refetch()} />
       ) : null}

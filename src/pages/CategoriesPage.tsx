@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/errors'
@@ -15,18 +15,22 @@ import {
 } from '../features/ops/ui'
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { AdminCategory } from '../features/ops/types'
+import { useDebouncedValue } from '../utils/useDebouncedValue'
 
 export function CategoriesPage() {
   const queryClient = useQueryClient()
   const [q, setQ] = useState('')
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const debouncedQ = useDebouncedValue(q)
+  const hasFilters = Boolean(q.trim() || active !== 'all')
   const query = useQuery({
-    queryKey: ['admin', 'categories', q, active],
+    queryKey: ['admin', 'categories', debouncedQ, active],
     queryFn: () =>
       listCategories({
-        ...(q.trim() ? { q: q.trim() } : {}),
+        ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
         ...(active === 'all' ? {} : { active }),
       }),
+    placeholderData: keepPreviousData,
   })
   const confirm = useConfirmTarget<AdminCategory>()
   const disable = useMutation({
@@ -66,9 +70,13 @@ export function CategoriesPage() {
         error={query.error}
         onRetry={() => void query.refetch()}
         isEmpty={(query.data?.length ?? 0) === 0}
-        emptyTitle="No categories yet"
-        emptyDescription="Create the first aisle, then add products to it."
-        emptyAction={<PrimaryLink to="/categories/new">New category</PrimaryLink>}
+        emptyTitle={hasFilters ? 'No matching categories' : 'No categories yet'}
+        emptyDescription={
+          hasFilters
+            ? 'Try a different search or active filter.'
+            : 'Create the first aisle, then add products to it.'
+        }
+        emptyAction={hasFilters ? undefined : <PrimaryLink to="/categories/new">New category</PrimaryLink>}
       >
         <DataTable columns={['Name', 'Slug', 'Order', 'Status', '']}>
           {query.data?.map((category) => (
