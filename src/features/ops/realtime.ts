@@ -7,6 +7,7 @@ const ORDER_EVENTS = [
   'order:accepted',
   'order:cancelled',
   'order:completed',
+  'order:return_requested',
 ] as const
 
 function socketOrigin(): string {

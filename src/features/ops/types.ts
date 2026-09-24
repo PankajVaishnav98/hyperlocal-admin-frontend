@@ -106,6 +106,12 @@ export type AdminOrder = {
   statusHistory: Array<{ status: OrderStatus; at: string }>
   placedAt: string
   cancelledAt: string | null
+  completedAt?: string | null
+  returnRequest?: {
+    status: 'return_requested'
+    requestedAt: string
+    reason: string
+  } | null
 }
 
 export type HomeBannerLinkType = 'none' | 'category' | 'product'

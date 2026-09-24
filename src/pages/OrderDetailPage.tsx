@@ -121,6 +121,19 @@ export function OrderDetailPage() {
                   </li>
                 ))}
               </ol>
+              {order.returnRequest ? (
+                <div className="mt-4 rounded-xl border border-ink-100 bg-ink-50 p-3">
+                  <p className="text-sm font-semibold text-ink-950">Return requested</p>
+                  <p className="mt-1 text-sm text-ink-600">
+                    The customer asked to return this order
+                    {order.returnRequest.reason ? `: ${order.returnRequest.reason}` : '.'} Reverse
+                    logistics is not in this version.
+                  </p>
+                  <p className="mt-1 text-xs text-ink-500">
+                    {new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
                 {order.status === 'placed' ? (
                   <>
