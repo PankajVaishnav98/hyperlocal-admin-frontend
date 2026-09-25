@@ -9,30 +9,41 @@ import { ReturnsPage } from './ReturnsPage'
 const { resolveReturnMock } = vi.hoisted(() => ({ resolveReturnMock: vi.fn() }))
 
 vi.mock('../features/ops/api', () => ({
+  ADMIN_LIST_PAGE_SIZE: 25,
   formatPaise: (value: number) => `₹${(value / 100).toFixed(0)}`,
   listOrders: () =>
-    Promise.resolve([
-      {
-        id: 'ord_return_1',
-        orderNumber: 'HL-20260924-111111',
-        status: 'completed',
-        customerMobile: '+919876543210',
-        items: [{ productId: 'prd-1', nameEn: 'Milk', quantity: 1, lineTotalPaise: 5800 }],
-        address: { recipientName: 'Asha', line1: '12 Market Road', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' },
-        service: { serviceAreaName: 'Jaipur', distanceKm: 1 },
-        pricing: { itemsPaise: 5800, deliveryFeePaise: 2000, grandTotalPaise: 7800 },
-        payment: { method: 'cod', status: 'pending', amountPaise: 7800 },
-        statusHistory: [],
-        placedAt: '2026-09-24T10:00:00.000Z',
-        cancelledAt: null,
-        completedAt: '2026-09-24T10:20:00.000Z',
-        returnRequest: {
-          status: 'return_requested',
-          requestedAt: '2026-09-24T10:25:00.000Z',
-          reason: 'Wrong item',
+    Promise.resolve({
+      items: [
+        {
+          id: 'ord_return_1',
+          orderNumber: 'HL-20260924-111111',
+          status: 'completed',
+          customerMobile: '+919876543210',
+          items: [{ productId: 'prd-1', nameEn: 'Milk', quantity: 1, lineTotalPaise: 5800 }],
+          address: { recipientName: 'Asha', line1: '12 Market Road', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' },
+          service: { serviceAreaName: 'Jaipur', distanceKm: 1 },
+          pricing: { itemsPaise: 5800, deliveryFeePaise: 2000, grandTotalPaise: 7800 },
+          payment: { method: 'cod', status: 'pending', amountPaise: 7800 },
+          statusHistory: [],
+          placedAt: '2026-09-24T10:00:00.000Z',
+          cancelledAt: null,
+          completedAt: '2026-09-24T10:20:00.000Z',
+          returnRequest: {
+            status: 'return_requested',
+            requestedAt: '2026-09-24T10:25:00.000Z',
+            reason: 'Wrong item',
+          },
         },
+      ],
+      meta: {
+        page: 1,
+        limit: 25,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
       },
-    ]),
+    }),
   resolveReturn: (...args: unknown[]) => resolveReturnMock(...args),
 }))
 

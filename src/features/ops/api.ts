@@ -193,18 +193,23 @@ export async function disableServiceArea(id: string): Promise<ServiceArea> {
 
 export async function listOrders(query?: {
   status?: OrderStatus
+  q?: string
+  page?: number
   limit?: number
   returnRequested?: boolean
-}): Promise<AdminOrder[]> {
+}): Promise<PagedList<AdminOrder>> {
+  const page = query?.page ?? 1
+  const limit = query?.limit ?? ADMIN_LIST_PAGE_SIZE
   const response = await apiClient.get<Envelope<{ orders: AdminOrder[] }>>('/admin/orders', {
     params: {
-      limit: query?.limit ?? 100,
-      offset: 0,
+      page,
+      limit,
+      ...(query?.q ? { q: query.q } : {}),
       ...(query?.status ? { status: query.status } : {}),
       ...(query?.returnRequested ? { returnRequested: 'true' } : {}),
     },
   })
-  return response.data.data.orders
+  return paged(response.data.data.orders, response.data.meta)
 }
 
 export async function countOrders(status?: OrderStatus): Promise<number> {

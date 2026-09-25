@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/errors'
 import { Badge, Button } from '../components/ui/Primitives'
-import { formatPaise, listOrders, resolveReturn } from '../features/ops/api'
+import { ADMIN_LIST_PAGE_SIZE, formatPaise, listOrders, resolveReturn } from '../features/ops/api'
 import type { AdminReturnAction } from '../features/ops/types'
-import { ConfirmDialog, DataTable, PageHeader, QueryGate } from '../features/ops/ui'
+import { ConfirmDialog, DataTable, PageHeader, PaginationBar, QueryGate } from '../features/ops/ui'
+import { useDebouncedValue } from '../utils/useDebouncedValue'
+import { useResettingPage } from '../utils/useResettingPage'
 
 const actionCopy: Record<
   AdminReturnAction,
@@ -27,10 +29,21 @@ const actionCopy: Record<
 
 export function ReturnsPage() {
   const queryClient = useQueryClient()
+  const [q, setQ] = useState('')
+  const debouncedQ = useDebouncedValue(q)
+  const hasFilters = Boolean(q.trim())
+  const [page, setPage] = useResettingPage(debouncedQ)
   const [pending, setPending] = useState<{ orderId: string; action: AdminReturnAction } | null>(null)
   const query = useQuery({
-    queryKey: ['admin', 'returns'],
-    queryFn: () => listOrders({ returnRequested: true, limit: 100 }),
+    queryKey: ['admin', 'returns', page, debouncedQ],
+    queryFn: () =>
+      listOrders({
+        returnRequested: true,
+        page,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
+      }),
+    placeholderData: keepPreviousData,
   })
   const resolve = useMutation({
     mutationFn: ({ orderId, action }: { orderId: string; action: AdminReturnAction }) =>
@@ -41,6 +54,7 @@ export function ReturnsPage() {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
     },
   })
+  const meta = query.data?.meta
 
   return (
     <div className="space-y-6">
@@ -48,65 +62,89 @@ export function ReturnsPage() {
         title="Returns"
         description="Open customer return requests. Completing a return restocks the items. Rejecting leaves stock unchanged."
       />
+      <input
+        value={q}
+        onChange={(event) => setQ(event.target.value)}
+        placeholder="Search order number, mobile, or PIN"
+        className="h-11 w-full max-w-md rounded-xl border border-ink-200 px-3.5 text-sm"
+        aria-label="Search returns"
+      />
       <QueryGate
         isLoading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
-        isEmpty={(query.data?.length ?? 0) === 0}
-        emptyTitle="No return requests"
-        emptyDescription="When a customer requests a return after delivery, it will appear here."
+        isEmpty={(meta?.total ?? 0) === 0}
+        emptyTitle={hasFilters ? 'No matching returns' : 'No return requests'}
+        emptyDescription={
+          hasFilters
+            ? 'Try a different search.'
+            : 'When a customer requests a return after delivery, it will appear here.'
+        }
       >
-        <DataTable columns={['Order', 'Customer', 'Reason', 'Requested', 'Actions']}>
-          {query.data?.map((order) => (
-            <tr key={order.id} className="text-ink-800">
-              <td className="px-4 py-3">
-                <Link className="font-semibold text-ink-950 hover:underline" to={`/orders/${order.id}`}>
-                  {order.orderNumber}
-                </Link>
-                <p className="text-xs text-ink-500">
-                  {formatPaise(order.pricing.grandTotalPaise)} · COD
-                </p>
-              </td>
-              <td className="px-4 py-3">{order.customerMobile}</td>
-              <td className="px-4 py-3">
-                <Badge tone="warning">Return requested</Badge>
-                {order.returnRequest?.reason ? (
-                  <p className="mt-1 text-xs text-ink-500">{order.returnRequest.reason}</p>
-                ) : null}
-              </td>
-              <td className="px-4 py-3">
-                {order.returnRequest?.requestedAt
-                  ? new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')
-                  : '—'}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      resolve.reset()
-                      setPending({ orderId: order.id, action: 'complete' })
-                    }}
-                  >
-                    Complete
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="danger"
-                    onClick={() => {
-                      resolve.reset()
-                      setPending({ orderId: order.id, action: 'reject' })
-                    }}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+        <div className="space-y-4">
+          <DataTable columns={['Order', 'Customer', 'Reason', 'Requested', 'Actions']}>
+            {query.data?.items.map((order) => (
+              <tr key={order.id} className="text-ink-800">
+                <td className="px-4 py-3">
+                  <Link className="font-semibold text-ink-950 hover:underline" to={`/orders/${order.id}`}>
+                    {order.orderNumber}
+                  </Link>
+                  <p className="text-xs text-ink-500">
+                    {formatPaise(order.pricing.grandTotalPaise)} · COD
+                  </p>
+                </td>
+                <td className="px-4 py-3">{order.customerMobile}</td>
+                <td className="px-4 py-3">
+                  <Badge tone="warning">Return requested</Badge>
+                  {order.returnRequest?.reason ? (
+                    <p className="mt-1 text-xs text-ink-500">{order.returnRequest.reason}</p>
+                  ) : null}
+                </td>
+                <td className="px-4 py-3">
+                  {order.returnRequest?.requestedAt
+                    ? new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')
+                    : '—'}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        resolve.reset()
+                        setPending({ orderId: order.id, action: 'complete' })
+                      }}
+                    >
+                      Complete
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() => {
+                        resolve.reset()
+                        setPending({ orderId: order.id, action: 'reject' })
+                      }}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+          {meta ? (
+            <PaginationBar
+              page={meta.page}
+              limit={meta.limit}
+              total={meta.total}
+              totalPages={meta.totalPages}
+              hasNextPage={meta.hasNextPage}
+              hasPreviousPage={meta.hasPreviousPage}
+              onPageChange={setPage}
+            />
+          ) : null}
+        </div>
       </QueryGate>
       {pending ? (
         <ConfirmDialog

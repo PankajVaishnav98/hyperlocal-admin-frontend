@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -6,7 +6,9 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 
 import { apiClient } from './api/client'
 import { AnalysisPage } from './pages/AnalysisPage'
+import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
+import { ServiceAreaFormPage } from './pages/ServiceAreaFormPage'
 import type { AnalysisReport } from './features/ops/types'
 import './app.css'
 
@@ -73,9 +75,10 @@ const analysis: AnalysisReport = {
 
 const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
   const url = `${config.baseURL ?? ''}${config.url ?? ''}`
-  const ok = (data: unknown) =>
+  const params = config.params as { q?: string; status?: string } | undefined
+  const ok = (data: unknown, meta?: Record<string, unknown>) =>
     ({
-      data: { success: true, message: 'ok', data },
+      data: { success: true, message: 'ok', data, ...(meta ? { meta } : {}) },
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -124,6 +127,60 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
       },
     })
   }
+  if (url.includes('/admin/service-areas/area-jaipur')) {
+    return ok({
+      serviceArea: {
+        id: 'area-jaipur',
+        slug: 'jaipur-central',
+        name: 'Jaipur central',
+        pincode: '302001',
+        perKmFeePaise: 2000,
+        centerLatitude: 26.9124,
+        centerLongitude: 75.7873,
+        isActive: true,
+      },
+    })
+  }
+  if (url.includes('/admin/orders')) {
+    const orders = [
+      {
+        id: 'ord_1',
+        orderNumber: 'HL-20260924-184221',
+        status: 'placed',
+        customerMobile: '+919876543210',
+        items: [{ productId: 'prd-1', nameEn: 'Toned milk', quantity: 2 }],
+        pricing: { itemsPaise: 11600, deliveryFeePaise: 4000, grandTotalPaise: 15600 },
+        placedAt: '2026-09-24T10:00:00.000Z',
+      },
+      {
+        id: 'ord_2',
+        orderNumber: 'HL-20260924-199001',
+        status: 'accepted',
+        customerMobile: '+919111111111',
+        items: [{ productId: 'prd-2', nameEn: 'Atta 5 kg', quantity: 1 }],
+        pricing: { itemsPaise: 24500, deliveryFeePaise: 2000, grandTotalPaise: 26500 },
+        placedAt: '2026-09-24T09:12:00.000Z',
+      },
+    ].filter((order) => {
+      if (params?.status && order.status !== params.status) return false
+      if (params?.q) {
+        const hay = `${order.orderNumber} ${order.customerMobile}`.toLowerCase()
+        return hay.includes(params.q.toLowerCase())
+      }
+      return true
+    })
+    return ok(
+      { orders },
+      {
+        page: 1,
+        limit: 25,
+        total: orders.length,
+        totalPages: orders.length > 0 ? 1 : 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    )
+  }
   return ok({})
 }
 
@@ -133,15 +190,41 @@ const client = new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 })
 
+const path =
+  screen === 'product'
+    ? '/products/prd-milk'
+    : screen === 'service-area'
+      ? '/service-areas/area-jaipur'
+      : screen === 'orders'
+        ? '/orders'
+        : '/analysis'
+
+function FillOrdersSearch() {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const input = document.querySelector('input[aria-label="Search orders"]')
+      if (!(input instanceof HTMLInputElement)) return
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      setter?.call(input, '184221')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }, 50)
+    return () => window.clearTimeout(timer)
+  }, [])
+  return null
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <div className="min-h-screen bg-canvas p-8">
       <div className="mx-auto max-w-6xl">
         <QueryClientProvider client={client}>
-          <MemoryRouter initialEntries={[screen === 'product' ? '/products/prd-milk' : '/analysis']}>
+          <MemoryRouter initialEntries={[path]}>
+            {screen === 'orders' ? <FillOrdersSearch /> : null}
             <Routes>
               <Route path="/analysis" element={<AnalysisPage />} />
               <Route path="/products/:productId" element={<ProductFormPage />} />
+              <Route path="/service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>

@@ -1,8 +1,10 @@
-import { io, type Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-const ORDER_EVENTS = [
+export const ADMIN_SOCKET_PATH = '/api/v1/socket.io'
+
+export const ORDER_SOCKET_EVENTS = [
   'order:placed',
   'order:accepted',
   'order:cancelled',
@@ -12,16 +14,95 @@ const ORDER_EVENTS = [
   'order:return_rejected',
 ] as const
 
-function socketOrigin(): string {
+export function isAllowedSocketOrigin(origin: string): boolean {
+  try {
+    const protocol = new URL(origin).protocol
+    return protocol === 'https:' || protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
+export function socketOriginFromApiBaseUrl(apiBaseUrl: string, pageOrigin?: string): string {
+  try {
+    return new URL(apiBaseUrl, pageOrigin ?? 'http://localhost').origin
+  } catch {
+    return pageOrigin ?? 'http://localhost'
+  }
+}
+
+export function adminSocketOrigin(): string {
   const configured = import.meta.env.VITE_API_URL?.trim()
   if (configured) {
-    try {
-      return new URL(configured, window.location.origin).origin
-    } catch {
-      return window.location.origin
-    }
+    return socketOriginFromApiBaseUrl(configured, window.location.origin)
   }
   return import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
+}
+
+export function adminSocketOptions() {
+  return {
+    path: ADMIN_SOCKET_PATH,
+    withCredentials: true as const,
+    transports: ['websocket', 'polling'] as ['websocket', 'polling'],
+    reconnection: true as const,
+    reconnectionAttempts: Number.POSITIVE_INFINITY,
+    reconnectionDelay: 400,
+    reconnectionDelayMax: 4_000,
+    timeout: 8_000,
+  }
+}
+
+export interface AdminOrderSocket {
+  on: (event: string, handler: () => void) => void
+  io: {
+    on: (event: string, handler: () => void) => void
+    removeAllListeners: () => void
+  }
+  removeAllListeners: () => void
+  disconnect: () => void
+}
+
+export type AdminSocketFactory = (
+  origin: string,
+  options: ReturnType<typeof adminSocketOptions>,
+) => AdminOrderSocket
+
+export function startAdminOrderSocket(input: {
+  origin: string
+  createSocket: AdminSocketFactory
+  onOrdersChanged: () => void
+  onReconnect: () => void
+}): () => void {
+  if (!isAllowedSocketOrigin(input.origin)) {
+    return () => undefined
+  }
+
+  const socket = input.createSocket(input.origin, adminSocketOptions())
+  socket.io.on('reconnect', input.onReconnect)
+  for (const event of ORDER_SOCKET_EVENTS) {
+    socket.on(event, input.onOrdersChanged)
+  }
+
+  return () => {
+    socket.removeAllListeners()
+    socket.io.removeAllListeners()
+    socket.disconnect()
+  }
+}
+
+export function invalidateAdminOrderQueries(
+  queryClient: { invalidateQueries: (filters: { queryKey: string[] }) => unknown },
+) {
+  void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+  void queryClient.invalidateQueries({ queryKey: ['admin', 'returns'] })
+  void queryClient.invalidateQueries({ queryKey: ['admin', 'analysis'] })
+}
+
+export function invalidateAdminCatalogQueries(
+  queryClient: { invalidateQueries: (filters: { queryKey: string[] }) => unknown },
+) {
+  void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+  void queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
 }
 
 export function useAdminOrderSocket(enabled: boolean) {
@@ -30,25 +111,17 @@ export function useAdminOrderSocket(enabled: boolean) {
   useEffect(() => {
     if (!enabled || import.meta.env.VITE_SCREENSHOT === '1') return
 
-    const socket: Socket = io(socketOrigin(), {
-      path: '/api/v1/socket.io',
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
+    const refreshOrders = () => invalidateAdminOrderQueries(queryClient)
+    const refreshAfterReconnect = () => {
+      invalidateAdminOrderQueries(queryClient)
+      invalidateAdminCatalogQueries(queryClient)
+    }
+
+    return startAdminOrderSocket({
+      origin: adminSocketOrigin(),
+      createSocket: (origin, options) => io(origin, options) as unknown as AdminOrderSocket,
+      onOrdersChanged: refreshOrders,
+      onReconnect: refreshAfterReconnect,
     })
-
-    const refreshOrders = () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'returns'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'analysis'] })
-    }
-
-    for (const event of ORDER_EVENTS) {
-      socket.on(event, refreshOrders)
-    }
-
-    return () => {
-      socket.removeAllListeners()
-      socket.disconnect()
-    }
   }, [enabled, queryClient])
 }

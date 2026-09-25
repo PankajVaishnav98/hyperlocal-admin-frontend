@@ -32,7 +32,7 @@ const modules = [
     to: '/products',
     icon: Package,
     title: 'Products',
-    description: 'Manage details, selling price, MRP, stock, and availability.',
+    description: 'Selling price, MRP, stock, and optional platform COGS for profit.',
   },
   {
     to: '/home-banners',
@@ -44,7 +44,7 @@ const modules = [
     to: '/service-areas',
     icon: MapPinned,
     title: 'Service areas',
-    description: 'PIN codes you cover and the per-kilometre delivery charge.',
+    description: 'PIN coverage plus hub location and ₹/km the customer pays for delivery.',
   },
   {
     to: '/orders',
@@ -61,7 +61,10 @@ const modules = [
 ]
 
 export function DashboardPage() {
-  const orders = useQuery({ queryKey: ['admin', 'orders'], queryFn: () => listOrders({ limit: 100 }) })
+  const orders = useQuery({
+    queryKey: ['admin', 'orders', 'overview'],
+    queryFn: () => listOrders({ page: 1, limit: 1 }),
+  })
   const waitingCount = useQuery({
     queryKey: ['admin', 'orders', 'count', 'placed'],
     queryFn: () => countOrders('placed'),
@@ -166,7 +169,7 @@ export function DashboardPage() {
         ))}
       </section>
 
-      {(orders.data?.length ?? 0) === 0 && !orders.isLoading && !orders.error ? (
+      {(orders.data?.meta.total ?? 0) === 0 && !orders.isLoading && !orders.error ? (
         <EmptyState
           title="No COD tickets yet"
           description="This overview only counts real orders. Open Orders after a customer places cash on delivery."

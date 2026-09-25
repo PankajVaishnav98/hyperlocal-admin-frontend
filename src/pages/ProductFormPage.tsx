@@ -152,7 +152,7 @@ function ProductForm({
     <div className="space-y-6">
       <PageHeader
         title={isNew ? 'New product' : 'Edit product'}
-        description="Selling price, MRP, and stock are stored on the server. The customer app cannot override them."
+        description="Selling price and MRP are what the customer pays. Cost to platform / COGS is for analysis profit only and is never shown as a shop price."
       />
       <Card className="max-w-2xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
@@ -187,10 +187,10 @@ function ProductForm({
             <Input label="MRP (₹)" value={values.mrpRupees} error={errors.mrpRupees} onChange={set('mrpRupees')} />
           </div>
           <Input
-            label="Cost (₹, optional)"
+            label="Cost to platform / COGS (₹, optional)"
             value={values.costRupees}
             error={errors.costRupees}
-            helperText="Used for platform profit. Leave blank if unknown — profit will be marked incomplete."
+            helperText="Cost to platform / COGS — used for profit, not customer price. Analysis profit is merchandise revenue minus this snapshot × quantity. Leave blank if unknown; profit is marked incomplete."
             onChange={set('costRupees')}
           />
           <ImageUploadField

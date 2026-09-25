@@ -14,6 +14,7 @@ import {
   updateServiceArea,
 } from '../features/ops/api'
 import type { ServiceArea } from '../features/ops/types'
+import { HubMapPicker } from '../features/ops/HubMapPicker'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 import { parseOptionalHub } from '../features/ops/serviceAreaHub'
 
@@ -119,9 +120,9 @@ function ServiceAreaForm({
     <div className="space-y-6">
       <PageHeader
         title={isNew ? 'New service area' : 'Edit service area'}
-        description="Checkout matches the customer address PIN code, then charges this rate per billed kilometre from the hub when coordinates are saved."
+        description="PIN coverage decides who can order. The hub is the origin for the delivery fee the customer pays: billed kilometres from this hub × ₹/km. Leave the hub blank only if you want the one-kilometre PIN fallback. Coordinates are never invented."
       />
-      <Card className="max-w-xl p-6">
+      <Card className="max-w-2xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
           <Input label="Name" value={values.name} error={errors.name} onChange={set('name')} />
           <Input
@@ -137,22 +138,36 @@ function ServiceAreaForm({
             label="Charge per km (₹)"
             value={values.perKmRupees}
             error={errors.perKmRupees}
-            helperText="Applied to billed distance, with a one-kilometre minimum."
+            helperText="This is what the customer pays for delivery: billed km from the hub × this rate (1 km minimum)."
             onChange={set('perKmRupees')}
           />
-          <Input
-            label="Hub latitude"
-            value={values.hubLatitude}
-            error={errors.hubLatitude}
-            helperText="Optional. Used for per-kilometre distance. Leave blank with longitude to keep the one-kilometre PIN fallback."
-            onChange={set('hubLatitude')}
+          <HubMapPicker
+            latitude={values.hubLatitude}
+            longitude={values.hubLongitude}
+            onPick={(hubLatitude, hubLongitude) =>
+              setValues((current) => ({
+                ...current,
+                hubLatitude: String(hubLatitude),
+                hubLongitude: String(hubLongitude),
+              }))
+            }
+            onClear={() => setValues((current) => ({ ...current, hubLatitude: '', hubLongitude: '' }))}
           />
-          <Input
-            label="Hub longitude"
-            value={values.hubLongitude}
-            error={errors.hubLongitude}
-            onChange={set('hubLongitude')}
-          />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input
+              label="Hub latitude"
+              value={values.hubLatitude}
+              error={errors.hubLatitude}
+              helperText="Set from the map or type both values. Blank keeps PIN-only 1 km fallback."
+              onChange={set('hubLatitude')}
+            />
+            <Input
+              label="Hub longitude"
+              value={values.hubLongitude}
+              error={errors.hubLongitude}
+              onChange={set('hubLongitude')}
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
             <input
               type="checkbox"

@@ -17,7 +17,19 @@ vi.mock('../features/auth/sessionService', async () => {
   }
 })
 vi.mock('../features/ops/api', () => ({
-  listOrders: () => Promise.resolve([]),
+  listOrders: () =>
+    Promise.resolve({
+      items: [],
+      meta: {
+        page: 1,
+        limit: 25,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    }),
+  ADMIN_LIST_PAGE_SIZE: 25,
   countOrders: () => Promise.resolve(0),
   getOrder: () => Promise.reject(new Error('not used')),
   listHomeBanners: () => Promise.resolve([]),
