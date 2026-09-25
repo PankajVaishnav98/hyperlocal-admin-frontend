@@ -169,3 +169,23 @@ export type AnalysisReport = {
   ordersByHour: Array<{ hour: number; count: number }>
   heatmap: Array<{ weekday: number; hour: number; count: number }>
 }
+
+export type CatalogImportError = {
+  sheet: string
+  row: number
+  key: string
+  message: string
+}
+
+export type CatalogImportCounts = {
+  created: number
+  updated: number
+  failed: number
+}
+
+export type CatalogImportResult = {
+  importId: string
+  categories: CatalogImportCounts
+  products: CatalogImportCounts
+  errors: CatalogImportError[]
+}

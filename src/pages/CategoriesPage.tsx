@@ -12,6 +12,7 @@ import {
   PaginationBar,
   PrimaryLink,
   QueryGate,
+  SecondaryLink,
   RowActions,
 } from '../features/ops/ui'
 import { useConfirmTarget } from '../features/ops/confirm'
@@ -55,7 +56,12 @@ export function CategoriesPage() {
       <PageHeader
         title="Categories"
         description="Aisles shown to customers. Deleting hides a category from the shop without removing history."
-        action={<PrimaryLink to="/categories/new">New category</PrimaryLink>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <SecondaryLink to="/catalog-import">Import spreadsheet</SecondaryLink>
+            <PrimaryLink to="/categories/new">New category</PrimaryLink>
+          </div>
+        }
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <input

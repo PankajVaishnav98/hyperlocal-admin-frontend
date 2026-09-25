@@ -29,6 +29,29 @@ export function PrimaryLink({
   )
 }
 
+export function SecondaryLink({
+  to,
+  children,
+  className,
+}: {
+  to: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'inline-flex h-11 items-center justify-center rounded-xl border border-ink-200 bg-white px-4 text-sm font-semibold text-ink-900 hover:bg-ink-50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+        className,
+      )}
+    >
+      {children}
+    </Link>
+  )
+}
+
 export function PageHeader({
   title,
   description,

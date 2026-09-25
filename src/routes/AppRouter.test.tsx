@@ -62,6 +62,8 @@ vi.mock('../features/ops/api', () => ({
   listProductOptions: () => Promise.resolve([]),
   listServiceAreas: () => Promise.resolve([]),
   getAnalysis: () => Promise.resolve(null),
+  downloadCatalogImportTemplate: () => Promise.resolve(new Blob(['xlsx'])),
+  importCatalogWorkbook: () => Promise.reject(new Error('not used')),
 }))
 vi.mock('../features/ops/realtime', () => ({
   useAdminOrderSocket: () => undefined,
@@ -159,6 +161,21 @@ describe('AppRouter', () => {
 
     expect(await screen.findByRole('heading', { name: 'Returns' })).toBeInTheDocument()
     expect(await screen.findByText('No return requests')).toBeInTheDocument()
+  })
+
+  it('renders catalog import for an authenticated operator', async () => {
+    renderRouter({
+      path: '/catalog-import',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Catalog import' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download template' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Catalog import' })).toBeInTheDocument()
   })
 
   it('renders the home banners empty state', async () => {

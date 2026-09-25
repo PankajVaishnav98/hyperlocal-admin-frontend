@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   BarChart3,
+  FileSpreadsheet,
   ImagePlus,
   LayoutDashboard,
   LogOut,
@@ -27,6 +28,7 @@ const links = [
   { to: '/analysis', label: 'Analysis', icon: BarChart3 },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/catalog-import', label: 'Catalog import', icon: FileSpreadsheet },
   { to: '/home-banners', label: 'Home banners', icon: ImagePlus },
   { to: '/service-areas', label: 'Service areas', icon: MapPinned },
   { to: '/orders', label: 'Orders', icon: Receipt },

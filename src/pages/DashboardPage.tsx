@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  FileSpreadsheet,
   ImagePlus,
   LayoutDashboard,
   MapPinned,
@@ -33,6 +34,12 @@ const modules = [
     icon: Package,
     title: 'Products',
     description: 'Selling price, MRP, stock, and optional platform COGS for profit.',
+  },
+  {
+    to: '/catalog-import',
+    icon: FileSpreadsheet,
+    title: 'Catalog import',
+    description: 'Create or update categories by slug and products by SKU from an Excel workbook.',
   },
   {
     to: '/home-banners',

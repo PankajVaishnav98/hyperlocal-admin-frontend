@@ -6,6 +6,7 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 
 import { apiClient } from './api/client'
 import { AnalysisPage } from './pages/AnalysisPage'
+import { CatalogImportPage } from './pages/CatalogImportPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
 import { ServiceAreaFormPage } from './pages/ServiceAreaFormPage'
@@ -85,6 +86,34 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
       config,
     }) as AxiosResponse
 
+  if (url.includes('/admin/catalog-import/template')) {
+    return {
+      data: new Blob(['xlsx'], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }),
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    } as AxiosResponse
+  }
+  if (url.includes('/admin/catalog-import')) {
+    return ok({
+      import: {
+        importId: 'imp_demo',
+        categories: { created: 1, updated: 1, failed: 1 },
+        products: { created: 2, updated: 0, failed: 0 },
+        errors: [
+          {
+            sheet: 'categories',
+            row: 4,
+            key: '(missing slug)',
+            message: 'slug is required',
+          },
+        ],
+      },
+    })
+  }
   if (url.includes('/admin/analysis')) {
     return ok({ analysis })
   }
@@ -197,7 +226,28 @@ const path =
       ? '/service-areas/area-jaipur'
       : screen === 'orders'
         ? '/orders'
-        : '/analysis'
+        : screen === 'catalog-import'
+          ? '/catalog-import'
+          : '/analysis'
+
+function FillCatalogImport() {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const input = document.querySelector('input[type="file"]')
+      if (!(input instanceof HTMLInputElement)) return
+      const file = new File(['demo'], 'catalog.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const transfer = new DataTransfer()
+      transfer.items.add(file)
+      input.files = transfer.files
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+      document.querySelector<HTMLButtonElement>('button[type="submit"]')?.click()
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [])
+  return null
+}
 
 function FillOrdersSearch() {
   useEffect(() => {
@@ -220,11 +270,13 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={client}>
           <MemoryRouter initialEntries={[path]}>
             {screen === 'orders' ? <FillOrdersSearch /> : null}
+            {screen === 'catalog-import' ? <FillCatalogImport /> : null}
             <Routes>
               <Route path="/analysis" element={<AnalysisPage />} />
               <Route path="/products/:productId" element={<ProductFormPage />} />
               <Route path="/service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/catalog-import" element={<CatalogImportPage />} />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>

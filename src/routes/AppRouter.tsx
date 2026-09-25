@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { AnalysisPage } from '../pages/AnalysisPage'
+import { CatalogImportPage } from '../pages/CatalogImportPage'
 import { CategoriesPage } from '../pages/CategoriesPage'
 import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -30,6 +31,7 @@ export function AppRouter() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="categories/new" element={<CategoryFormPage />} />
           <Route path="categories/:categoryId" element={<CategoryFormPage />} />
+          <Route path="catalog-import" element={<CatalogImportPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:productId" element={<ProductFormPage />} />

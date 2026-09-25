@@ -12,6 +12,7 @@ import type {
   AdminHomeBanner,
   HomeBannerPayload,
   AnalysisReport,
+  CatalogImportResult,
   ImageFolder,
   OrderStatus,
   PagedList,
@@ -315,6 +316,24 @@ export async function getAnalysis(query: {
     params: query,
   })
   return response.data.data.analysis
+}
+
+export async function downloadCatalogImportTemplate(): Promise<Blob> {
+  const response = await apiClient.get<Blob>('/admin/catalog-import/template', {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function importCatalogWorkbook(file: File): Promise<CatalogImportResult> {
+  const body = new FormData()
+  body.append('file', file)
+  const response = await apiClient.post<Envelope<{ import: CatalogImportResult }>>(
+    '/admin/catalog-import',
+    body,
+    { timeout: 60_000 },
+  )
+  return response.data.data.import
 }
 
 export function formatPaise(paise: number): string {

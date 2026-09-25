@@ -19,6 +19,7 @@ import {
   PaginationBar,
   PrimaryLink,
   QueryGate,
+  SecondaryLink,
   RowActions,
 } from '../features/ops/ui'
 import { useConfirmTarget } from '../features/ops/confirm'
@@ -76,7 +77,12 @@ export function ProductsPage() {
       <PageHeader
         title="Products"
         description="Platform catalog with server-authoritative prices, stock, and availability."
-        action={<PrimaryLink to="/products/new">New product</PrimaryLink>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <SecondaryLink to="/catalog-import">Import spreadsheet</SecondaryLink>
+            <PrimaryLink to="/products/new">New product</PrimaryLink>
+          </div>
+        }
       />
       <div className="grid gap-3 sm:grid-cols-3">
         <input
