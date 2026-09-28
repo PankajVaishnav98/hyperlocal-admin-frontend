@@ -7,6 +7,7 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { apiClient } from './api/client'
 import { AnalysisPage } from './pages/AnalysisPage'
 import { CatalogImportPage } from './pages/CatalogImportPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
 import { ServiceAreaFormPage } from './pages/ServiceAreaFormPage'
@@ -170,6 +171,35 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
       },
     })
   }
+  if (url.includes('/admin/orders/ord_1')) {
+    return ok({
+      order: {
+        id: 'ord_1',
+        orderNumber: 'HL-20260924-184221',
+        status: 'accepted',
+        customerMobile: '+919876543210',
+        items: [{ productId: 'prd-1', nameEn: 'Toned milk', quantity: 2, lineTotalPaise: 11600 }],
+        address: {
+          recipientName: 'Asha',
+          line1: '12 Market Road',
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          pincode: '302001',
+          latitude: 26.9124,
+          longitude: 75.7873,
+        },
+        service: { serviceAreaName: 'Jaipur', distanceKm: 1.2 },
+        pricing: { itemsPaise: 11600, deliveryFeePaise: 4000, grandTotalPaise: 15600 },
+        payment: { method: 'cod', status: 'pending', amountPaise: 15600 },
+        statusHistory: [
+          { status: 'placed', at: '2026-09-24T10:00:00.000Z' },
+          { status: 'accepted', at: '2026-09-24T10:05:00.000Z' },
+        ],
+        placedAt: '2026-09-24T10:00:00.000Z',
+        cancelledAt: null,
+      },
+    })
+  }
   if (url.includes('/admin/orders')) {
     const orders = [
       {
@@ -226,9 +256,11 @@ const path =
       ? '/service-areas/area-jaipur'
       : screen === 'orders'
         ? '/orders'
-        : screen === 'catalog-import'
-          ? '/catalog-import'
-          : '/analysis'
+        : screen === 'order-detail'
+          ? '/orders/ord_1'
+          : screen === 'catalog-import'
+            ? '/catalog-import'
+            : '/analysis'
 
 function FillCatalogImport() {
   useEffect(() => {
@@ -276,6 +308,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/products/:productId" element={<ProductFormPage />} />
               <Route path="/service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/catalog-import" element={<CatalogImportPage />} />
             </Routes>
           </MemoryRouter>

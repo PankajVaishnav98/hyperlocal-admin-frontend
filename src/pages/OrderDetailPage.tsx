@@ -6,6 +6,7 @@ import { Badge, Button } from '../components/ui/Primitives'
 import { ErrorState } from '../components/states/SystemStates'
 import { ApiError } from '../api/errors'
 import { formatPaise, getOrder, resolveReturn, transitionOrder } from '../features/ops/api'
+import { mapsDirectionsUrl } from '../features/ops/mapsDirections'
 import type { AdminOrderAction, AdminReturnAction, OrderStatus } from '../features/ops/types'
 import { ConfirmDialog, PageHeader, QueryGate } from '../features/ops/ui'
 
@@ -250,6 +251,14 @@ export function OrderDetailPage() {
                 {order.address.line1}, {order.address.city}, {order.address.state}{' '}
                 {order.address.pincode}
               </p>
+              <a
+                className="mt-3 inline-block text-sm font-semibold text-ink-700 hover:underline"
+                href={mapsDirectionsUrl(order.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Google Maps directions
+              </a>
             </section>
             <section className="rounded-2xl border border-ink-100 bg-white p-5 lg:col-span-2">
               <h2 className="font-semibold text-ink-950">Items</h2>
