@@ -51,7 +51,7 @@ const modules = [
     to: '/service-areas',
     icon: MapPinned,
     title: 'Service areas',
-    description: 'PIN coverage plus hub location and ₹/km the customer pays for delivery.',
+    description: 'PIN coverage plus hub location and ₹/km billed per 100 m for delivery.',
   },
   {
     to: '/orders',

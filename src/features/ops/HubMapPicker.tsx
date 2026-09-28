@@ -118,8 +118,8 @@ export function HubMapPicker({
       </button>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs leading-5 text-ink-500">
-          Map data © OpenStreetMap contributors. Customer delivery fee is distance from this hub × ₹/km after PIN coverage
-          matches.
+          Map data © OpenStreetMap contributors. Customer delivery fee is 100 m slices from this hub
+          (stored ₹/km ÷ 10) after PIN coverage matches.
         </p>
         {hasHub ? (
           <Button type="button" size="sm" variant="ghost" onClick={onClear}>
