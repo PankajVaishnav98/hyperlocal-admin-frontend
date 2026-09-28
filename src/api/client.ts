@@ -6,6 +6,10 @@ const apiBaseUrl =
   import.meta.env.VITE_API_URL?.trim() ||
   (import.meta.env.DEV ? 'http://localhost:3000/api/v1' : '/api/v1')
 
+function isFormData(value: unknown): value is FormData {
+  return typeof FormData !== 'undefined' && value instanceof FormData
+}
+
 type UnauthorizedListener = () => void
 type AccessTokenProvider = () => string | null
 
@@ -34,8 +38,9 @@ function isAuthPath(url: string | undefined): boolean {
 }
 
 apiClient.interceptors.request.use((config) => {
-  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+  if (isFormData(config.data)) {
     config.headers.delete('Content-Type')
+    config.headers.delete('content-type')
   }
   const accessToken = getAccessToken()
   if (accessToken) {

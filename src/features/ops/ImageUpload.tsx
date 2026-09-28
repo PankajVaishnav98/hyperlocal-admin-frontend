@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError } from '../../api/errors'
+import { catalogMediaUrl } from './catalogMediaUrl'
 import { uploadImage } from './api'
 import type { ImageFolder } from './types'
-
-function isPreviewableUrl(value: string): boolean {
-  return value.startsWith('https://') || value.includes('/api/v1/media/')
-}
 
 export function ImageUploadField({
   folder,
@@ -22,12 +19,17 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [localPreview, setLocalPreview] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     return () => {
       if (localPreview) URL.revokeObjectURL(localPreview)
     }
   }, [localPreview])
+
+  useEffect(() => {
+    setFailed(false)
+  }, [value, localPreview])
 
   async function onFile(file: File | undefined) {
     if (!file) return
@@ -36,7 +38,11 @@ export function ImageUploadField({
     setUploading(true)
     setUploadError(null)
     try {
-      onChange(await uploadImage(folder, file))
+      const imageUrl = await uploadImage(folder, file)
+      if (imageUrl.startsWith('blob:')) {
+        throw new Error('Upload did not return a stored image URL')
+      }
+      onChange(imageUrl)
       setLocalPreview((current) => {
         if (current) URL.revokeObjectURL(current)
         return null
@@ -52,16 +58,17 @@ export function ImageUploadField({
     }
   }
 
-  const preview = localPreview || (isPreviewableUrl(value) ? value : '')
+  const preview = localPreview || catalogMediaUrl(value) || ''
 
   return (
     <div className="space-y-2">
       <p className="block text-sm font-semibold text-ink-800">Image</p>
-      {preview ? (
+      {preview && !failed ? (
         <img
           src={preview}
           alt=""
           className="h-28 w-28 rounded-2xl border border-ink-200 object-cover bg-ink-100"
+          onError={() => setFailed(true)}
         />
       ) : (
         <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-dashed border-ink-200 text-xs text-ink-400">
@@ -80,8 +87,8 @@ export function ImageUploadField({
         className="block w-full text-sm text-ink-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-800"
       />
       <p className="text-xs text-ink-500">
-        JPEG, PNG, or WebP up to 4 MB. The API stores the file. Set IMAGE_PROVIDER=cloudinary for
-        Cloudinary in staging and production.
+        JPEG, PNG, or WebP up to 4 MB. The API stores the file on Cloudinary in staging and
+        production. Local development can use the memory image store.
       </p>
       {uploading ? <p className="text-xs text-ink-500">Uploading…</p> : null}
       {(uploadError || error) && (

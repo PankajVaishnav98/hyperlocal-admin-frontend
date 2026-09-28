@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../components/ui/Primitives'
+import { CatalogThumb } from '../features/ops/CatalogThumb'
 import { ApiError } from '../api/errors'
 import {
   ADMIN_LIST_PAGE_SIZE,
@@ -132,11 +133,7 @@ export function ProductsPage() {
               <tr key={product.id} className="text-ink-800">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                    ) : (
-                      <span className="h-10 w-10 rounded-lg bg-ink-100" />
-                    )}
+                    <CatalogThumb imageUrl={product.imageUrl} />
                     <div>
                       <Link className="font-semibold text-ink-950 hover:underline" to={`/products/${product.id}`}>
                         {product.nameEn}

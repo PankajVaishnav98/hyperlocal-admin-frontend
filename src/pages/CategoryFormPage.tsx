@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from '../components/states/SystemStates'
 import { Button, Card, Input, Textarea } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
 import { createCategory, disableCategory, getCategory, updateCategory } from '../features/ops/api'
+import { isStoredImageUrl } from '../features/ops/catalogMediaUrl'
 import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminCategory } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
@@ -21,7 +22,7 @@ const schema = z.object({
   isActive: z.boolean(),
   imageUrl: z
     .string()
-    .refine((value) => value === '' || value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
+    .refine((value) => value === '' || isStoredImageUrl(value), 'Upload an image first'),
 })
 
 function fieldsFrom(category?: AdminCategory) {
@@ -63,11 +64,14 @@ function CategoryForm({
         throw new Error('validation')
       }
       setErrors({})
-      const payload = {
-        ...parsed.data,
-        imageUrl: parsed.data.imageUrl || null,
+      const { imageUrl, ...rest } = parsed.data
+      if (isNew) {
+        return createCategory({ ...rest, imageUrl: imageUrl || null })
       }
-      return isNew ? createCategory(payload) : updateCategory(categoryId, payload)
+      return updateCategory(categoryId, {
+        ...rest,
+        ...(imageUrl ? { imageUrl } : {}),
+      })
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })

@@ -304,7 +304,11 @@ export async function uploadImage(folder: ImageFolder, file: File): Promise<stri
       timeout: 30_000,
     },
   )
-  return response.data.data.image.imageUrl
+  const imageUrl = response.data.data.image.imageUrl
+  if (!imageUrl || imageUrl.startsWith('blob:')) {
+    throw new Error('Upload did not return a stored image URL')
+  }
+  return imageUrl
 }
 
 export async function getAnalysis(query: {

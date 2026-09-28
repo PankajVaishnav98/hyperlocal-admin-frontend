@@ -15,6 +15,7 @@ import {
   SecondaryLink,
   RowActions,
 } from '../features/ops/ui'
+import { CatalogThumb } from '../features/ops/CatalogThumb'
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { AdminCategory } from '../features/ops/types'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
@@ -99,11 +100,7 @@ export function CategoriesPage() {
               <tr key={category.id} className="text-ink-800">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {category.imageUrl ? (
-                      <img src={category.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                    ) : (
-                      <span className="h-10 w-10 rounded-lg bg-ink-100" />
-                    )}
+                    <CatalogThumb imageUrl={category.imageUrl} />
                     <div>
                       <Link className="font-semibold text-ink-950 hover:underline" to={`/categories/${category.id}`}>
                         {category.nameEn}

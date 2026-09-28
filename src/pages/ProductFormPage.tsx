@@ -14,6 +14,7 @@ import {
   rupeesToPaise,
   updateProduct,
 } from '../features/ops/api'
+import { isStoredImageUrl } from '../features/ops/catalogMediaUrl'
 import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminProduct } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
@@ -34,7 +35,7 @@ const schema = z.object({
   costRupees: z.string(),
   imageUrl: z
     .string()
-    .refine((value) => value === '' || value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
+    .refine((value) => value === '' || isStoredImageUrl(value), 'Upload an image first'),
 })
 
 function fieldsFrom(product?: AdminProduct) {
@@ -116,9 +117,14 @@ function ProductForm({
         inStock: parsed.data.inStock,
         isActive: parsed.data.isActive,
         costPaise,
-        imageUrl: parsed.data.imageUrl || null,
       }
-      return isNew ? createProduct(payload) : updateProduct(productId, payload)
+      if (isNew) {
+        return createProduct({ ...payload, imageUrl: parsed.data.imageUrl || null })
+      }
+      return updateProduct(productId, {
+        ...payload,
+        ...(parsed.data.imageUrl ? { imageUrl: parsed.data.imageUrl } : {}),
+      })
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
