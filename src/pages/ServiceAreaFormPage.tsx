@@ -120,7 +120,7 @@ function ServiceAreaForm({
     <div className="space-y-6">
       <PageHeader
         title={isNew ? 'New service area' : 'Edit service area'}
-        description="PIN coverage decides who can order. The hub is the origin for the delivery fee: ceil(metres from this hub ÷ 100) slices × (₹/km ÷ 10). Leave the hub blank only if you want the 1 km (ten 100 m slices) PIN fallback. Coordinates are never invented."
+        description="PIN coverage decides who can order. The hub is the origin for a linear delivery fee: metres × ₹ per 100 m. Leave the hub blank only if you want the 1 km (1000 m) PIN fallback. Coordinates are never invented."
       />
       <Card className="max-w-2xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
@@ -135,10 +135,10 @@ function ServiceAreaForm({
             onChange={set('pincode')}
           />
           <Input
-            label="Charge per 100 m (from ₹/km)"
+            label="Charge per 100 m (₹)"
             value={values.perKmRupees}
             error={errors.perKmRupees}
-            helperText="Enter rupees per kilometre. Checkout bills each 100 m slice at this rate ÷ 10 (₹20/km = ₹2 per 100 m). 1.0 km is 10 slices at this same rupee amount."
+            helperText="Linear, rounded to paise. ₹1.00 per 100 m → 148 m = ₹1.48 (1 paise/m). Same as ₹10/km. Do not enter a per-km lump."
             onChange={set('perKmRupees')}
           />
           <HubMapPicker
@@ -158,7 +158,7 @@ function ServiceAreaForm({
               label="Hub latitude"
               value={values.hubLatitude}
               error={errors.hubLatitude}
-              helperText="Set from the map or type both values. Blank keeps PIN-only ten 100 m slices."
+              helperText="Set from the map or type both values. Blank keeps PIN-only 1000 m at this rate."
               onChange={set('hubLatitude')}
             />
             <Input

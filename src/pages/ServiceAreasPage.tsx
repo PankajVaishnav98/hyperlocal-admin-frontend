@@ -56,7 +56,7 @@ export function ServiceAreasPage() {
     <div className="space-y-6">
       <PageHeader
         title="Service areas"
-        description="PIN coverage first. When a hub is saved, checkout charges ceil(metres ÷ 100) × (₹/km ÷ 10) per 100 m."
+        description="PIN coverage first. When a hub is saved, checkout charges metres × ₹ per 100 m (linear, paise rounding)."
         action={<PrimaryLink to="/service-areas/new">New service area</PrimaryLink>}
       />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -87,12 +87,12 @@ export function ServiceAreasPage() {
         emptyDescription={
           hasFilters
             ? 'Try a different search or active filter.'
-            : 'Add a PIN code, hub, and ₹/km charge (billed per 100 m) before taking orders.'
+            : 'Add a PIN code, hub, and ₹ per 100 m charge before taking orders.'
         }
         emptyAction={hasFilters ? undefined : <PrimaryLink to="/service-areas/new">New service area</PrimaryLink>}
       >
         <div className="space-y-4">
-          <DataTable columns={['Area', 'PIN', 'Hub', '₹/km · 100 m', 'Status', '']}>
+          <DataTable columns={['Area', 'PIN', 'Hub', '₹ / 100 m', 'Status', '']}>
             {paged.items.map((area) => (
               <tr key={area.id} className="text-ink-800">
                 <td className="px-4 py-3">
