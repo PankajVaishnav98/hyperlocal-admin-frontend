@@ -16,6 +16,7 @@ import {
 } from '../features/ops/ui'
 import { useConfirmTarget } from '../features/ops/confirm'
 import type { ServiceArea } from '../features/ops/types'
+import { formatWgs84 } from '../features/ops/serviceAreaHub'
 import { paginateItems, textMatches } from '../utils/listQuery'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
 import { useResettingPage } from '../utils/useResettingPage'
@@ -82,7 +83,9 @@ export function ServiceAreasPage() {
         isLoading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
-        isEmpty={paged.meta.total === 0}
+        loadingLabel="Loading service areas"
+        errorTitle="Could not load service areas"
+        isEmpty={!query.isLoading && !query.error && paged.meta.total === 0}
         emptyTitle={hasFilters ? 'No matching service areas' : 'No service areas yet'}
         emptyDescription={
           hasFilters
@@ -103,7 +106,7 @@ export function ServiceAreasPage() {
                 <td className="px-4 py-3 font-mono text-sm">{area.pincode}</td>
                 <td className="px-4 py-3 text-sm">
                   {typeof area.centerLatitude === 'number' && typeof area.centerLongitude === 'number'
-                    ? `${area.centerLatitude.toFixed(4)}, ${area.centerLongitude.toFixed(4)}`
+                    ? `${formatWgs84(area.centerLatitude)}, ${formatWgs84(area.centerLongitude)}`
                     : 'PIN only'}
                 </td>
                 <td className="px-4 py-3">{formatPaise(area.perKmFeePaise)}</td>

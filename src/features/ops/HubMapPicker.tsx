@@ -1,27 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '../../components/ui/Primitives'
+import { requestBrowserCoordinates } from './browserLocation'
 import { clickToCoordinates, INDIA_VIEWPORT, latToTileY, lonToTileX, tileUrl } from './hubMap'
+import { persistWgs84 } from './serviceAreaHub'
 
 const MAP_HEIGHT = 280
 
 export function HubMapPicker({
   latitude,
   longitude,
+  locating,
+  onLocatingChange,
   onPick,
   onClear,
 }: {
   latitude: string
   longitude: string
+  locating?: boolean
+  onLocatingChange?: (locating: boolean) => void
   onPick: (latitude: number, longitude: number) => void
   onClear: () => void
 }) {
   const mapRef = useRef<HTMLButtonElement>(null)
   const [width, setWidth] = useState(640)
+  const [geoError, setGeoError] = useState<string | null>(null)
   const parsedLat = Number(latitude)
   const parsedLng = Number(longitude)
   const hasHub = Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && latitude.trim() && longitude.trim()
-  const [zoom, setZoom] = useState(hasHub ? 13 : INDIA_VIEWPORT.zoom)
+  const [zoom, setZoom] = useState(hasHub ? 16 : INDIA_VIEWPORT.zoom)
   const centerLatitude = hasHub ? parsedLat : INDIA_VIEWPORT.latitude
   const centerLongitude = hasHub ? parsedLng : INDIA_VIEWPORT.longitude
 
@@ -62,11 +69,34 @@ export function HubMapPicker({
     return cells
   }, [centerLatitude, centerLongitude, width, zoom])
 
+  async function useCurrentLocation() {
+    setGeoError(null)
+    onLocatingChange?.(true)
+    try {
+      const coords = await requestBrowserCoordinates()
+      onPick(coords.latitude, coords.longitude)
+      setZoom((value) => Math.max(value, 16))
+    } catch (error) {
+      setGeoError(error instanceof Error ? error.message : 'Location is unavailable.')
+    } finally {
+      onLocatingChange?.(false)
+    }
+  }
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink-800">Delivery hub on the map</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            loading={Boolean(locating)}
+            onClick={() => void useCurrentLocation()}
+          >
+            Use my current location
+          </Button>
           <Button type="button" size="sm" variant="secondary" onClick={() => setZoom((value) => Math.min(18, value + 1))}>
             Zoom in
           </Button>
@@ -80,7 +110,7 @@ export function HubMapPicker({
         type="button"
         className="relative block w-full overflow-hidden rounded-xl border border-ink-200 bg-ink-100"
         style={{ height: MAP_HEIGHT }}
-        aria-label="Set delivery hub from map. Click to place the hub. The map starts on India and does not save coordinates until you click or type them."
+        aria-label="Set delivery hub from map. Click to place the hub. The map starts on India and does not save coordinates until you click, use current location, or type them."
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()
           const point = clickToCoordinates({
@@ -92,7 +122,7 @@ export function HubMapPicker({
             centerLongitude,
             zoom,
           })
-          onPick(point.latitude, point.longitude)
+          onPick(persistWgs84(point.latitude), persistWgs84(point.longitude))
           setZoom((value) => Math.max(value, 12))
         }}
       >
@@ -112,14 +142,20 @@ export function HubMapPicker({
           />
         ) : (
           <span className="pointer-events-none absolute inset-x-3 bottom-3 z-10 rounded-lg bg-white/90 px-3 py-2 text-left text-xs text-ink-600">
-            Click the map to set the hub. Coordinates are not invented — India is only the starting view.
+            Click the map or use current location to set the hub. Coordinates are not invented — India is only the starting view.
           </span>
         )}
       </button>
+      {geoError ? (
+        <p role="alert" className="text-sm text-danger-600">
+          {geoError}
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs leading-5 text-ink-500">
-          Map data © OpenStreetMap contributors. Customer delivery fee is metres from this hub × ₹ per
-          100 m after PIN coverage matches.
+          Map data © OpenStreetMap contributors. Customer delivery fee is metres from this hub × ₹ per 100 m after PIN
+          coverage matches. Browser GPS fills the same WGS84 fields as a precise map click — it does not substitute a city
+          center.
         </p>
         {hasHub ? (
           <Button type="button" size="sm" variant="ghost" onClick={onClear}>

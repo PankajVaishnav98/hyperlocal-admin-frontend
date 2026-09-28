@@ -16,7 +16,7 @@ import {
 import type { ServiceArea } from '../features/ops/types'
 import { HubMapPicker } from '../features/ops/HubMapPicker'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
-import { parseOptionalHub } from '../features/ops/serviceAreaHub'
+import { formatWgs84, parseOptionalHub } from '../features/ops/serviceAreaHub'
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Required'),
@@ -32,8 +32,8 @@ function fieldsFrom(area?: ServiceArea) {
     name: area?.name ?? '',
     pincode: area?.pincode ?? '',
     perKmRupees: area ? (area.perKmFeePaise / 100).toFixed(2) : '20',
-    hubLatitude: area?.centerLatitude !== undefined ? String(area.centerLatitude) : '',
-    hubLongitude: area?.centerLongitude !== undefined ? String(area.centerLongitude) : '',
+    hubLatitude: formatWgs84(area?.centerLatitude),
+    hubLongitude: formatWgs84(area?.centerLongitude),
     isActive: area?.isActive ?? true,
   }
 }
@@ -52,6 +52,7 @@ function ServiceAreaForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [locatingHub, setLocatingHub] = useState(false)
 
   const save = useMutation({
     mutationFn: async () => {
@@ -144,11 +145,13 @@ function ServiceAreaForm({
           <HubMapPicker
             latitude={values.hubLatitude}
             longitude={values.hubLongitude}
+            locating={locatingHub}
+            onLocatingChange={setLocatingHub}
             onPick={(hubLatitude, hubLongitude) =>
               setValues((current) => ({
                 ...current,
-                hubLatitude: String(hubLatitude),
-                hubLongitude: String(hubLongitude),
+                hubLatitude: formatWgs84(hubLatitude),
+                hubLongitude: formatWgs84(hubLongitude),
               }))
             }
             onClear={() => setValues((current) => ({ ...current, hubLatitude: '', hubLongitude: '' }))}
@@ -158,7 +161,7 @@ function ServiceAreaForm({
               label="Hub latitude"
               value={values.hubLatitude}
               error={errors.hubLatitude}
-              helperText="Set from the map or type both values. Blank keeps PIN-only 1000 m at this rate."
+              helperText="Use current location, the map, or type both WGS84 values (7 decimal places). Blank keeps PIN-only 1000 m at this rate."
               onChange={set('hubLatitude')}
             />
             <Input
@@ -182,7 +185,7 @@ function ServiceAreaForm({
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" loading={save.isPending}>
+            <Button type="submit" loading={save.isPending} disabled={save.isPending || locatingHub || remove.isPending}>
               Save service area
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/service-areas')}>
@@ -226,7 +229,26 @@ export function ServiceAreaFormPage() {
 
   if (serviceAreaId && existing.isLoading) return <LoadingState label="Loading service area" />
   if (serviceAreaId && existing.error) {
-    return <ErrorState title="Service area not found" onRetry={() => void existing.refetch()} />
+    return (
+      <ErrorState
+        title="Could not load this service area"
+        description={
+          existing.error instanceof Error
+            ? existing.error.message
+            : 'The service area could not be loaded. Please try again.'
+        }
+        onRetry={() => void existing.refetch()}
+      />
+    )
+  }
+  if (serviceAreaId && !existing.data) {
+    return (
+      <ErrorState
+        title="Service area not found"
+        description="This hub may have been removed. Return to the list or try again."
+        onRetry={() => void existing.refetch()}
+      />
+    )
   }
 
   return (

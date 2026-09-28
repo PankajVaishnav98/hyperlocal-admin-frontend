@@ -20,4 +20,11 @@ describe('service area hub form', () => {
       hub: { centerLatitude: 26.9124, centerLongitude: 75.7873 },
     })
   })
+
+  it('persists seven WGS84 decimals from GPS, not four', () => {
+    expect(parseOptionalHub('25.90417891', '74.65814567')).toEqual({
+      ok: true,
+      hub: { centerLatitude: 25.9041789, centerLongitude: 74.6581457 },
+    })
+  })
 })

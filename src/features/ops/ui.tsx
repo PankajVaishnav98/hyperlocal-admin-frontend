@@ -86,6 +86,8 @@ export function QueryGate({
   emptyTitle,
   emptyDescription,
   emptyAction,
+  loadingLabel = 'Loading records',
+  errorTitle = 'Could not load records',
   children,
 }: {
   isLoading: boolean
@@ -95,13 +97,15 @@ export function QueryGate({
   emptyTitle: string
   emptyDescription: string
   emptyAction?: ReactNode
+  loadingLabel?: string
+  errorTitle?: string
   children: ReactNode
 }) {
-  if (isLoading) return <LoadingState label="Loading records" rows={4} />
+  if (isLoading) return <LoadingState label={loadingLabel} rows={4} />
   if (error) {
     return (
       <ErrorState
-        title="Could not load records"
+        title={errorTitle}
         description={error instanceof Error ? error.message : 'Please try again.'}
         onRetry={onRetry}
       />

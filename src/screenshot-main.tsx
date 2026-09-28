@@ -161,12 +161,12 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
     return ok({
       serviceArea: {
         id: 'area-jaipur',
-        slug: 'jaipur-central',
-        name: 'Jaipur central',
-        pincode: '302001',
-        perKmFeePaise: 2000,
-        centerLatitude: 26.9124,
-        centerLongitude: 75.7873,
+        slug: 'gulabpura-bhilwara',
+        name: 'Gulabpura',
+        pincode: '311021',
+        perKmFeePaise: 100,
+        centerLatitude: 25.9041789,
+        centerLongitude: 74.6581456,
         isActive: true,
       },
     })

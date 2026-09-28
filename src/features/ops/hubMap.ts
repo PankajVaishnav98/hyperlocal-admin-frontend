@@ -37,8 +37,8 @@ export function clickToCoordinates(input: {
   const worldX = centerX - input.width / 2 + input.offsetX
   const worldY = centerY - input.height / 2 + input.offsetY
   return {
-    latitude: Number(tileYToLat(worldY / 256, input.zoom).toFixed(6)),
-    longitude: Number(tileXToLon(worldX / 256, input.zoom).toFixed(6)),
+    latitude: Number(tileYToLat(worldY / 256, input.zoom).toFixed(7)),
+    longitude: Number(tileXToLon(worldX / 256, input.zoom).toFixed(7)),
   }
 }
 
