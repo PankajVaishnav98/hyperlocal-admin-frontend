@@ -304,10 +304,26 @@ createRoot(document.getElementById('root')!).render(
           <MemoryRouter initialEntries={[path]}>
             {screen === 'orders' ? <FillOrdersSearch /> : null}
             {screen === 'catalog-import' ? <FillCatalogImport /> : null}
-            {screen === 'order-alert' || screen === 'analysis' ? (
+            {screen === 'return-alert' ? (
               <OrderAlertStack
                 alerts={[
                   {
+                    kind: 'return',
+                    eventId: 'evt_return',
+                    orderId: 'ord_1',
+                    orderNumber: 'HL-20260924-184221',
+                    occurredAt: '2026-09-24T10:30:00.000Z',
+                  },
+                ]}
+                audioUnlocked
+                onDismiss={() => undefined}
+                onUnlock={() => undefined}
+              />
+            ) : screen === 'order-alert' || screen === 'analysis' ? (
+              <OrderAlertStack
+                alerts={[
+                  {
+                    kind: 'order',
                     eventId: 'evt_demo',
                     orderId: 'ord_1',
                     orderNumber: 'HL-20260924-184221',

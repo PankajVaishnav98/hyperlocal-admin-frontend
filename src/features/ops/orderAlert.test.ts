@@ -14,6 +14,7 @@ import {
 } from './orderAlert'
 
 const sample: OrderAlert = {
+  kind: 'order',
   eventId: 'evt_1',
   orderId: 'ord_9',
   orderNumber: 'HL-100',
@@ -41,6 +42,7 @@ describe('persistent placed-order alerts', () => {
   it('keeps every placed order pending until it is removed on accept/cancel', () => {
     const withOne = upsertPendingAlert([], sample)
     const withTwo = upsertPendingAlert(withOne, {
+      kind: 'order',
       eventId: 'evt_2',
       orderId: 'ord_8',
       orderNumber: 'HL-101',
@@ -64,12 +66,33 @@ describe('persistent placed-order alerts', () => {
       reconcilePendingAlerts([sample], [{ id: 'ord_8', orderNumber: 'HL-101', placedAt: '2026-09-29T08:01:00.000Z' }]),
     ).toEqual([
       {
-        eventId: 'placed:ord_8',
+        kind: 'order',
+        eventId: 'order:ord_8',
         orderId: 'ord_8',
         orderNumber: 'HL-101',
         occurredAt: '2026-09-29T08:01:00.000Z',
       },
     ])
+  })
+
+  it('keeps return-request alerts on a separate queue from placed orders', () => {
+    const placed = upsertPendingAlert([], sample)
+    const withReturn = upsertPendingAlert([], {
+      kind: 'return',
+      eventId: 'evt_r',
+      orderId: 'ord_9',
+      orderNumber: 'HL-100',
+      occurredAt: '2026-09-29T09:00:00.000Z',
+    })
+    expect(placed[0]?.kind).toBe('order')
+    expect(withReturn[0]?.kind).toBe('return')
+    expect(
+      reconcilePendingAlerts(
+        withReturn,
+        [{ id: 'ord_9', orderNumber: 'HL-100', placedAt: '2026-09-29T09:00:00.000Z' }],
+        'return',
+      )[0]?.kind,
+    ).toBe('return')
   })
 
   it('spaces repeat chimes by the 5s interval across tabs', () => {
@@ -172,7 +195,7 @@ describe('persistent placed-order alerts', () => {
       if (message.type === 'remove') received.push(`rm:${message.orderId}`)
     })
     channel.publish({ type: 'upsert', alert: sample })
-    channel.publish({ type: 'remove', orderId: 'ord_9' })
+    channel.publish({ type: 'remove', kind: 'order', orderId: 'ord_9' })
     expect(received).toEqual(['up:ord_9', 'rm:ord_9'])
   })
 })

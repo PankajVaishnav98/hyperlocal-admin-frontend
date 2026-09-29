@@ -1,6 +1,7 @@
 export const ORDER_ALERT_CHANNEL = 'hyperlocal-admin-order-alerts'
 export const ORDER_ALERT_REPEAT_MS = 5_000
 export const ORDER_ALERT_PENDING_STORAGE_KEY = 'hyperlocal.admin.orderAlert.pending'
+export const RETURN_ALERT_PENDING_STORAGE_KEY = 'hyperlocal.admin.returnAlert.pending'
 export const ORDER_ALERT_LAST_PLAY_STORAGE_KEY = 'hyperlocal.admin.orderAlert.lastPlay'
 export const ORDER_ALERT_RESOLVED_EVENTS = [
   'order:accepted',
@@ -8,7 +9,10 @@ export const ORDER_ALERT_RESOLVED_EVENTS = [
   'order:completed',
 ] as const
 
+export type OpsAlertKind = 'order' | 'return'
+
 export type OrderAlert = {
+  kind: OpsAlertKind
   eventId: string
   orderId: string
   orderNumber: string
@@ -17,10 +21,13 @@ export type OrderAlert = {
 
 export type OrderAlertBroadcast =
   | { type: 'upsert'; alert: OrderAlert }
-  | { type: 'remove'; orderId: string }
-  | { type: 'sync'; alerts: OrderAlert[] }
+  | { type: 'remove'; kind: OpsAlertKind; orderId: string }
+  | { type: 'sync'; kind: OpsAlertKind; alerts: OrderAlert[] }
 
-export function parseOrderEventPayload(raw: unknown): OrderAlert | null {
+export function parseOrderEventPayload(
+  raw: unknown,
+  kind: OpsAlertKind = 'order',
+): OrderAlert | null {
   if (!raw || typeof raw !== 'object') return null
   const record = raw as Record<string, unknown>
   const orderId = typeof record.orderId === 'string' ? record.orderId.trim() : ''
@@ -32,12 +39,13 @@ export function parseOrderEventPayload(raw: unknown): OrderAlert | null {
   const eventId =
     typeof record.eventId === 'string' && record.eventId.trim()
       ? record.eventId.trim()
-      : `order:${orderId}`
+      : `${kind}:${orderId}`
   const occurredAt =
     typeof record.occurredAt === 'string' && record.occurredAt.trim()
       ? record.occurredAt.trim()
       : new Date().toISOString()
-  return { eventId, orderId, orderNumber, occurredAt }
+  const storedKind = record.kind === 'return' || record.kind === 'order' ? record.kind : kind
+  return { kind: storedKind, eventId, orderId, orderNumber, occurredAt }
 }
 
 export const parseOrderPlacedPayload = parseOrderEventPayload
@@ -59,6 +67,7 @@ export function removePendingAlert(pending: OrderAlert[], orderId: string): Orde
 export function reconcilePendingAlerts(
   pending: OrderAlert[],
   placed: Array<{ id: string; orderNumber: string; placedAt: string }>,
+  kind: OpsAlertKind = 'order',
 ): OrderAlert[] {
   const existing = new Map(pending.map((alert) => [alert.orderId, alert]))
   const next: OrderAlert[] = []
@@ -67,7 +76,8 @@ export function reconcilePendingAlerts(
     const current = existing.get(order.id)
     next.push(
       current ?? {
-        eventId: `placed:${order.id}`,
+        kind,
+        eventId: `${kind}:${order.id}`,
         orderId: order.id,
         orderNumber: order.orderNumber || order.id,
         occurredAt: order.placedAt,
@@ -77,17 +87,21 @@ export function reconcilePendingAlerts(
   return next
 }
 
-export function loadPendingAlerts(storage: Pick<Storage, 'getItem'> | null): OrderAlert[] {
+export function loadPendingAlerts(
+  storage: Pick<Storage, 'getItem'> | null,
+  key = ORDER_ALERT_PENDING_STORAGE_KEY,
+  kind: OpsAlertKind = 'order',
+): OrderAlert[] {
   if (!storage) return []
   try {
-    const raw = storage.getItem(ORDER_ALERT_PENDING_STORAGE_KEY)
+    const raw = storage.getItem(key)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
     const alerts: OrderAlert[] = []
     for (const item of parsed) {
-      const alert = parseOrderEventPayload(item)
-      if (alert) alerts.push(alert)
+      const alert = parseOrderEventPayload(item, kind)
+      if (alert) alerts.push({ ...alert, kind })
     }
     return alerts
   } catch {
@@ -98,14 +112,15 @@ export function loadPendingAlerts(storage: Pick<Storage, 'getItem'> | null): Ord
 export function persistPendingAlerts(
   storage: Pick<Storage, 'setItem' | 'removeItem'> | null,
   alerts: OrderAlert[],
+  key = ORDER_ALERT_PENDING_STORAGE_KEY,
 ) {
   if (!storage) return
   try {
     if (alerts.length === 0) {
-      storage.removeItem(ORDER_ALERT_PENDING_STORAGE_KEY)
+      storage.removeItem(key)
       return
     }
-    storage.setItem(ORDER_ALERT_PENDING_STORAGE_KEY, JSON.stringify(alerts.slice(0, 25)))
+    storage.setItem(key, JSON.stringify(alerts.slice(0, 25)))
   } catch {
     // Ignore quota / private-mode failures; in-memory pending still works.
   }

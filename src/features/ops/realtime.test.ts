@@ -58,6 +58,8 @@ describe('admin order socket contract', () => {
     const onReconnect = vi.fn()
     const onOrderPlaced = vi.fn()
     const onOrderResolved = vi.fn()
+    const onReturnRequested = vi.fn()
+    const onReturnResolved = vi.fn()
     const onDisconnect = vi.fn()
 
     const stop = startAdminOrderSocket({
@@ -67,6 +69,8 @@ describe('admin order socket contract', () => {
       onReconnect,
       onOrderPlaced,
       onOrderResolved,
+      onReturnRequested,
+      onReturnResolved,
       onDisconnect,
     })
 
@@ -83,6 +87,11 @@ describe('admin order socket contract', () => {
     expect(onOrderPlaced).toHaveBeenCalledTimes(1)
     expect(onOrderResolved).toHaveBeenCalledWith({ orderId: 'ord_9' })
     handlers['order:cancelled']?.({ orderId: 'ord_8' })
+    expect(onOrderResolved).toHaveBeenCalledTimes(2)
+    handlers['order:return_requested']?.({ orderId: 'ord_9', orderNumber: 'HL-100' })
+    expect(onReturnRequested).toHaveBeenCalledWith({ orderId: 'ord_9', orderNumber: 'HL-100' })
+    handlers['order:return_rejected']?.({ orderId: 'ord_9' })
+    expect(onReturnResolved).toHaveBeenCalledWith({ orderId: 'ord_9' })
     expect(onOrderResolved).toHaveBeenCalledTimes(2)
     handlers['disconnect']?.()
     expect(onDisconnect).toHaveBeenCalledTimes(1)

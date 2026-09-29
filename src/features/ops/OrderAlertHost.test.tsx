@@ -14,6 +14,7 @@ describe('OrderAlertStack', () => {
         <OrderAlertStack
           alerts={[
             {
+              kind: 'order',
               eventId: 'evt_1',
               orderId: 'ord_9',
               orderNumber: 'HL-20260929-1',
@@ -32,8 +33,35 @@ describe('OrderAlertStack', () => {
     expect(screen.getByText('ord_9')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open order' })).toHaveAttribute('href', '/orders/ord_9')
     await user.click(screen.getByRole('button', { name: 'Hide order HL-20260929-1 until next alert' }))
-    expect(onDismiss).toHaveBeenCalledWith('ord_9')
+    expect(onDismiss).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'order', orderId: 'ord_9' }),
+    )
     expect(screen.queryByRole('button', { name: 'Enable loud order alerts' })).not.toBeInTheDocument()
+  })
+
+  it('labels return requests separately from COD orders', () => {
+    render(
+      <MemoryRouter>
+        <OrderAlertStack
+          alerts={[
+            {
+              kind: 'return',
+              eventId: 'evt_r',
+              orderId: 'ord_9',
+              orderNumber: 'HL-20260929-1',
+              occurredAt: '2026-09-29T08:00:00.000Z',
+            },
+          ]}
+          audioUnlocked
+          onDismiss={() => undefined}
+          onUnlock={() => undefined}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('Return request needs accept or reject')
+    expect(screen.getByText('Return for order HL-20260929-1')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open return' })).toHaveAttribute('href', '/orders/ord_9')
+    expect(screen.queryByText('COD order needs accept or reject')).not.toBeInTheDocument()
   })
 
   it('asks for a first gesture until audio is unlocked', async () => {
