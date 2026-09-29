@@ -31,7 +31,7 @@ function fieldsFrom(category?: AdminCategory) {
     nameEn: category?.nameEn ?? '',
     nameHi: category?.nameHi ?? '',
     description: category?.description ?? '',
-    accent: category?.accent ?? '#D7E8DC',
+    accent: category?.accent ?? '#E2ECE9',
     sortOrder: String(category?.sortOrder ?? 10),
     isActive: category?.isActive ?? true,
     imageUrl: category?.imageUrl ?? '',
