@@ -104,7 +104,7 @@ export function DashboardLayout() {
           {!desktopCollapsed && (
             <div>
               <p className="font-display text-base font-semibold tracking-tight">
-                Hyperlocal
+                ApnaMart
               </p>
               <p className="text-xs text-ink-500">Admin console</p>
             </div>
@@ -138,7 +138,7 @@ export function DashboardLayout() {
               <div className="flex items-center gap-3">
                 <BrandMark />
                 <div>
-                  <p className="font-display text-base font-semibold">Hyperlocal</p>
+                  <p className="font-display text-base font-semibold">ApnaMart</p>
                   <p className="text-xs text-ink-500">Admin console</p>
                 </div>
               </div>

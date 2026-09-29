@@ -79,7 +79,7 @@ export function LoginPage() {
         <div className="flex items-center gap-3">
           <BrandMark className="bg-white text-ink-950 shadow-none" />
           <span className="font-display text-lg font-semibold tracking-tight">
-            Hyperlocal
+            ApnaMart
           </span>
         </div>
         <div className="max-w-xl">
@@ -94,7 +94,7 @@ export function LoginPage() {
             with server-enforced administrator access.
           </p>
         </div>
-        <p className="text-sm text-ink-400">Hyperlocal administration</p>
+        <p className="text-sm text-ink-400">ApnaMart administration</p>
       </section>
 
       <section className="relative flex min-h-screen items-center justify-center px-5 py-12 sm:px-8">
@@ -102,7 +102,7 @@ export function LoginPage() {
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <BrandMark />
             <span className="font-display text-lg font-semibold text-ink-950">
-              Hyperlocal
+              ApnaMart
             </span>
           </div>
           <Card className="p-6 sm:p-8">

@@ -1,6 +1,6 @@
-# Hyperlocal Admin
+# ApnaMart Admin
 
-React operations console for Hyperlocal. Operators sign in with
+React operations console for ApnaMart. Operators sign in with
 server-enforced credentials, then manage the platform catalog and service
 areas. There is no shop-owner login and no online payment flow.
 

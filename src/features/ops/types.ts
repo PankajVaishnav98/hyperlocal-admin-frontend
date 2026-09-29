@@ -70,8 +70,8 @@ export type ServiceAreaPayload = {
 
 export type OrderStatus = 'placed' | 'accepted' | 'cancelled' | 'completed'
 export type AdminOrderAction = 'accept' | 'reject' | 'deliver'
-export type AdminReturnAction = 'complete' | 'reject'
-export type ReturnRequestStatus = 'return_requested' | 'completed' | 'rejected'
+export type AdminReturnAction = 'accept' | 'complete' | 'reject'
+export type ReturnRequestStatus = 'return_requested' | 'accepted' | 'completed' | 'rejected'
 
 export type AdminOrder = {
   id: string

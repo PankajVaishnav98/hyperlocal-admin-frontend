@@ -5,15 +5,21 @@ import { Link } from 'react-router-dom'
 import { ApiError } from '../api/errors'
 import { Badge, Button } from '../components/ui/Primitives'
 import { ADMIN_LIST_PAGE_SIZE, formatPaise, listOrders, resolveReturn } from '../features/ops/api'
-import type { AdminReturnAction } from '../features/ops/types'
+import type { AdminReturnAction, ReturnRequestStatus } from '../features/ops/types'
 import { ConfirmDialog, DataTable, PageHeader, PaginationBar, QueryGate } from '../features/ops/ui'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
 import { useResettingPage } from '../utils/useResettingPage'
 
-const actionCopy: Record<
+export const returnActionCopy: Record<
   AdminReturnAction,
   { title: string; description: string; confirmLabel: string }
 > = {
+  accept: {
+    title: 'Accept this return?',
+    description:
+      'Marks the return in progress. Repeating alerts stop. Stock is restored only when you complete it.',
+    confirmLabel: 'Accept return',
+  },
   complete: {
     title: 'Complete this return?',
     description:
@@ -25,6 +31,11 @@ const actionCopy: Record<
     description: 'The customer will see that the return was declined. Stock is not restored.',
     confirmLabel: 'Reject return',
   },
+}
+
+function returnBadge(status?: ReturnRequestStatus) {
+  if (status === 'accepted') return { tone: 'info' as const, label: 'Return accepted' }
+  return { tone: 'warning' as const, label: 'Return requested' }
 }
 
 export function ReturnsPage() {
@@ -60,7 +71,7 @@ export function ReturnsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Returns"
-        description="Open customer return requests. Completing a return restocks the items. Rejecting leaves stock unchanged."
+        description="Open customer returns. Accept acknowledges the request. Completing restocks. Rejecting leaves stock unchanged."
       />
       <input
         value={q}
@@ -83,55 +94,76 @@ export function ReturnsPage() {
       >
         <div className="space-y-4">
           <DataTable columns={['Order', 'Customer', 'Reason', 'Requested', 'Actions']}>
-            {query.data?.items.map((order) => (
-              <tr key={order.id} className="text-ink-800">
-                <td className="px-4 py-3">
-                  <Link className="font-semibold text-ink-950 hover:underline" to={`/orders/${order.id}`}>
-                    {order.orderNumber}
-                  </Link>
-                  <p className="text-xs text-ink-500">
-                    {formatPaise(order.pricing.grandTotalPaise)} · COD
-                  </p>
-                </td>
-                <td className="px-4 py-3">{order.customerMobile}</td>
-                <td className="px-4 py-3">
-                  <Badge tone="warning">Return requested</Badge>
-                  {order.returnRequest?.reason ? (
-                    <p className="mt-1 text-xs text-ink-500">{order.returnRequest.reason}</p>
-                  ) : null}
-                </td>
-                <td className="px-4 py-3">
-                  {order.returnRequest?.requestedAt
-                    ? new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')
-                    : '—'}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        resolve.reset()
-                        setPending({ orderId: order.id, action: 'complete' })
-                      }}
-                    >
-                      Complete
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="danger"
-                      onClick={() => {
-                        resolve.reset()
-                        setPending({ orderId: order.id, action: 'reject' })
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {query.data?.items.map((order) => {
+              const requested = order.returnRequest?.status === 'return_requested'
+              const open =
+                requested || order.returnRequest?.status === 'accepted'
+              const badge = returnBadge(order.returnRequest?.status)
+              return (
+                <tr key={order.id} className="text-ink-800">
+                  <td className="px-4 py-3">
+                    <Link className="font-semibold text-ink-950 hover:underline" to={`/orders/${order.id}`}>
+                      {order.orderNumber}
+                    </Link>
+                    <p className="text-xs text-ink-500">
+                      {formatPaise(order.pricing.grandTotalPaise)} · COD
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">{order.customerMobile}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={badge.tone}>{badge.label}</Badge>
+                    {order.returnRequest?.reason ? (
+                      <p className="mt-1 text-xs text-ink-500">{order.returnRequest.reason}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    {order.returnRequest?.requestedAt
+                      ? new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    {open ? (
+                      <div className="flex flex-wrap gap-2">
+                        {requested ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              resolve.reset()
+                              setPending({ orderId: order.id, action: 'accept' })
+                            }}
+                          >
+                            Accept
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={requested ? 'secondary' : 'primary'}
+                          onClick={() => {
+                            resolve.reset()
+                            setPending({ orderId: order.id, action: 'complete' })
+                          }}
+                        >
+                          Complete
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          onClick={() => {
+                            resolve.reset()
+                            setPending({ orderId: order.id, action: 'reject' })
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              )
+            })}
           </DataTable>
           {meta ? (
             <PaginationBar
@@ -148,9 +180,9 @@ export function ReturnsPage() {
       </QueryGate>
       {pending ? (
         <ConfirmDialog
-          title={actionCopy[pending.action].title}
-          description={actionCopy[pending.action].description}
-          confirmLabel={actionCopy[pending.action].confirmLabel}
+          title={returnActionCopy[pending.action].title}
+          description={returnActionCopy[pending.action].description}
+          confirmLabel={returnActionCopy[pending.action].confirmLabel}
           loading={resolve.isPending}
           error={
             resolve.error instanceof ApiError

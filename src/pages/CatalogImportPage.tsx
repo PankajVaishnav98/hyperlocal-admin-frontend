@@ -24,7 +24,7 @@ export function CatalogImportPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'hyperlocal-catalog-import.xlsx'
+      link.download = 'apnamart-catalog-import.xlsx'
       link.click()
       URL.revokeObjectURL(url)
     },

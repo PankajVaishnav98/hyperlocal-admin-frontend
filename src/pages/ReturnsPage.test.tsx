@@ -48,7 +48,7 @@ vi.mock('../features/ops/api', () => ({
 }))
 
 describe('ReturnsPage', () => {
-  it('lists return_requested orders and can complete a return', async () => {
+  it('lists return_requested orders and can accept a return', async () => {
     resolveReturnMock.mockResolvedValue({ id: 'ord_return_1' })
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -65,9 +65,31 @@ describe('ReturnsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Returns' })).toBeInTheDocument()
     expect(await screen.findByText('HL-20260924-111111')).toBeInTheDocument()
     expect(screen.getByText('Wrong item')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Accept' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Accept' }))
+    expect(await screen.findByRole('dialog', { name: 'Accept this return?' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Accept return' }))
+    expect(resolveReturnMock).toHaveBeenCalledWith('ord_return_1', 'accept')
+  })
+
+  it('can complete a requested return without accepting first', async () => {
+    resolveReturnMock.mockResolvedValue({ id: 'ord_return_1' })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const user = userEvent.setup()
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <ReturnsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await screen.findByText('HL-20260924-111111')
     await user.click(screen.getByRole('button', { name: 'Complete' }))
     expect(await screen.findByRole('dialog', { name: 'Complete this return?' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Complete return' }))

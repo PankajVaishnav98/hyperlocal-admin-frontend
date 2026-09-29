@@ -234,7 +234,7 @@ export function BrandMark({ className }: { className?: string }) {
       )}
       aria-hidden="true"
     >
-      H
+      A
     </span>
   )
 }

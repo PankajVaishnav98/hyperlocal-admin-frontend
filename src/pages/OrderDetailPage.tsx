@@ -9,6 +9,7 @@ import { formatPaise, getOrder, resolveReturn, transitionOrder } from '../featur
 import { mapsDirectionsUrl } from '../features/ops/mapsDirections'
 import type { AdminOrderAction, AdminReturnAction, OrderStatus } from '../features/ops/types'
 import { ConfirmDialog, PageHeader, QueryGate } from '../features/ops/ui'
+import { returnActionCopy } from './ReturnsPage'
 
 function statusTone(status: OrderStatus) {
   switch (status) {
@@ -56,23 +57,6 @@ const actionCopy: Record<
     title: 'Mark this order delivered?',
     description: 'The customer timeline will show Completed. Live GPS is not recorded.',
     confirmLabel: 'Mark delivered',
-  },
-}
-
-const returnCopy: Record<
-  AdminReturnAction,
-  { title: string; description: string; confirmLabel: string }
-> = {
-  complete: {
-    title: 'Complete this return?',
-    description:
-      'Stock for the returned lines is put back. Cash on delivery is not refunded.',
-    confirmLabel: 'Complete return',
-  },
-  reject: {
-    title: 'Reject this return?',
-    description: 'The customer will see that the return was declined. Stock is not restored.',
-    confirmLabel: 'Reject return',
   },
 }
 
@@ -156,29 +140,47 @@ export function OrderDetailPage() {
                       ? 'Return completed'
                       : order.returnRequest.status === 'rejected'
                         ? 'Return declined'
-                        : 'Return requested'}
+                        : order.returnRequest.status === 'accepted'
+                          ? 'Return accepted'
+                          : 'Return requested'}
                   </p>
                   <p className="mt-1 text-sm text-ink-600">
                     {order.returnRequest.status === 'completed'
                       ? 'Stock for these lines was restored. Cash on delivery is not refunded.'
                       : order.returnRequest.status === 'rejected'
                         ? 'This return request was declined.'
-                        : `The customer asked to return this order${order.returnRequest.reason ? `: ${order.returnRequest.reason}` : '.'}`}
+                        : order.returnRequest.status === 'accepted'
+                          ? 'This return is in progress. Complete it to restock, or reject it. Cash on delivery is not refunded.'
+                          : `The customer asked to return this order${order.returnRequest.reason ? `: ${order.returnRequest.reason}` : '.'}`}
                   </p>
                   <p className="mt-1 text-xs text-ink-500">
                     {new Date(order.returnRequest.requestedAt).toLocaleString('en-IN')}
                   </p>
-                  {order.returnRequest.status === 'return_requested' ? (
+                  {order.returnRequest.status === 'return_requested' ||
+                  order.returnRequest.status === 'accepted' ? (
                     <div className="mt-3 flex flex-wrap gap-2">
+                      {order.returnRequest.status === 'return_requested' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            returnMutation.reset()
+                            setPendingReturn('accept')
+                          }}
+                        >
+                          Accept
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         size="sm"
+                        variant={order.returnRequest.status === 'return_requested' ? 'secondary' : 'primary'}
                         onClick={() => {
                           returnMutation.reset()
                           setPendingReturn('complete')
                         }}
                       >
-                        Complete return
+                        Complete
                       </Button>
                       <Button
                         type="button"
@@ -189,7 +191,7 @@ export function OrderDetailPage() {
                           setPendingReturn('reject')
                         }}
                       >
-                        Reject return
+                        Reject
                       </Button>
                     </div>
                   ) : null}
@@ -301,9 +303,9 @@ export function OrderDetailPage() {
       ) : null}
       {pendingReturn ? (
         <ConfirmDialog
-          title={returnCopy[pendingReturn].title}
-          description={returnCopy[pendingReturn].description}
-          confirmLabel={returnCopy[pendingReturn].confirmLabel}
+          title={returnActionCopy[pendingReturn].title}
+          description={returnActionCopy[pendingReturn].description}
+          confirmLabel={returnActionCopy[pendingReturn].confirmLabel}
           loading={returnMutation.isPending}
           error={
             returnMutation.error instanceof ApiError

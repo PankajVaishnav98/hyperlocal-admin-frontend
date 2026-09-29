@@ -6,6 +6,7 @@ export const ORDER_SOCKET_EVENTS = [
   'order:cancelled',
   'order:completed',
   'order:return_requested',
+  'order:return_accepted',
   'order:return_completed',
   'order:return_rejected',
 ] as const
@@ -99,7 +100,7 @@ export function startAdminOrderSocket(input: {
       if (event === 'order:return_requested') {
         input.onReturnRequested?.(payload)
       }
-      if (event === 'order:return_completed' || event === 'order:return_rejected') {
+      if (event === 'order:return_completed' || event === 'order:return_rejected' || event === 'order:return_accepted') {
         input.onReturnResolved?.(payload)
       }
     })

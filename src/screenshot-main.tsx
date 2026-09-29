@@ -10,6 +10,7 @@ import { CatalogImportPage } from './pages/CatalogImportPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
+import { ReturnsPage } from './pages/ReturnsPage'
 import { ServiceAreaFormPage } from './pages/ServiceAreaFormPage'
 import { OrderAlertStack } from './features/ops/OrderAlertHost'
 import type { AnalysisReport } from './features/ops/types'
@@ -78,7 +79,11 @@ const analysis: AnalysisReport = {
 
 const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
   const url = `${config.baseURL ?? ''}${config.url ?? ''}`
-  const params = config.params as { q?: string; status?: string } | undefined
+  const params = config.params as {
+    q?: string
+    status?: string
+    returnRequested?: boolean | string
+  } | undefined
   const ok = (data: unknown, meta?: Record<string, unknown>) =>
     ({
       data: { success: true, message: 'ok', data, ...(meta ? { meta } : {}) },
@@ -202,33 +207,55 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
     })
   }
   if (url.includes('/admin/orders')) {
-    const orders = [
-      {
-        id: 'ord_1',
-        orderNumber: 'HL-20260924-184221',
-        status: 'placed',
-        customerMobile: '+919876543210',
-        items: [{ productId: 'prd-1', nameEn: 'Toned milk', quantity: 2 }],
-        pricing: { itemsPaise: 11600, deliveryFeePaise: 4000, grandTotalPaise: 15600 },
-        placedAt: '2026-09-24T10:00:00.000Z',
+    const returnOrder = {
+      id: 'ord_1',
+      orderNumber: 'HL-20260924-184221',
+      status: 'completed',
+      customerMobile: '+919876543210',
+      items: [{ productId: 'prd-1', nameEn: 'Toned milk', quantity: 2, lineTotalPaise: 11600 }],
+      address: { recipientName: 'Asha', line1: '12 Market Road', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' },
+      service: { serviceAreaName: 'Jaipur', distanceKm: 1.2 },
+      pricing: { itemsPaise: 11600, deliveryFeePaise: 4000, grandTotalPaise: 15600 },
+      payment: { method: 'cod', status: 'pending', amountPaise: 15600 },
+      statusHistory: [],
+      placedAt: '2026-09-24T10:00:00.000Z',
+      cancelledAt: null,
+      completedAt: '2026-09-24T10:20:00.000Z',
+      returnRequest: {
+        status: 'return_requested',
+        requestedAt: '2026-09-24T10:25:00.000Z',
+        reason: 'Wrong item',
       },
-      {
-        id: 'ord_2',
-        orderNumber: 'HL-20260924-199001',
-        status: 'accepted',
-        customerMobile: '+919111111111',
-        items: [{ productId: 'prd-2', nameEn: 'Atta 5 kg', quantity: 1 }],
-        pricing: { itemsPaise: 24500, deliveryFeePaise: 2000, grandTotalPaise: 26500 },
-        placedAt: '2026-09-24T09:12:00.000Z',
-      },
-    ].filter((order) => {
-      if (params?.status && order.status !== params.status) return false
-      if (params?.q) {
-        const hay = `${order.orderNumber} ${order.customerMobile}`.toLowerCase()
-        return hay.includes(params.q.toLowerCase())
-      }
-      return true
-    })
+    }
+    const orders = params?.returnRequested === true || params?.returnRequested === 'true'
+      ? [returnOrder]
+      : [
+          {
+            id: 'ord_1',
+            orderNumber: 'HL-20260924-184221',
+            status: 'placed',
+            customerMobile: '+919876543210',
+            items: [{ productId: 'prd-1', nameEn: 'Toned milk', quantity: 2 }],
+            pricing: { itemsPaise: 11600, deliveryFeePaise: 4000, grandTotalPaise: 15600 },
+            placedAt: '2026-09-24T10:00:00.000Z',
+          },
+          {
+            id: 'ord_2',
+            orderNumber: 'HL-20260924-199001',
+            status: 'accepted',
+            customerMobile: '+919111111111',
+            items: [{ productId: 'prd-2', nameEn: 'Atta 5 kg', quantity: 1 }],
+            pricing: { itemsPaise: 24500, deliveryFeePaise: 2000, grandTotalPaise: 26500 },
+            placedAt: '2026-09-24T09:12:00.000Z',
+          },
+        ].filter((order) => {
+          if (params?.status && order.status !== params.status) return false
+          if (params?.q) {
+            const hay = `${order.orderNumber} ${order.customerMobile}`.toLowerCase()
+            return hay.includes(params.q.toLowerCase())
+          }
+          return true
+        })
     return ok(
       { orders },
       {
@@ -261,7 +288,9 @@ const path =
           ? '/orders/ord_1'
           : screen === 'catalog-import'
             ? '/catalog-import'
-            : '/analysis'
+            : screen === 'returns'
+              ? '/returns'
+              : '/analysis'
 
 function FillCatalogImport() {
   useEffect(() => {
@@ -342,6 +371,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/catalog-import" element={<CatalogImportPage />} />
+              <Route path="/returns" element={<ReturnsPage />} />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>

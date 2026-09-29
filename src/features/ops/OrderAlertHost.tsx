@@ -176,7 +176,9 @@ export function OrderAlertHost({ enabled }: { enabled: boolean }) {
         'return',
         async () => {
           const result = await listOrders({ returnRequested: true, page: 1, limit: 25 })
-          return result.items.map((order) => ({
+          return result.items
+            .filter((order) => order.returnRequest?.status === 'return_requested')
+            .map((order) => ({
             id: order.id,
             orderNumber: order.orderNumber,
             placedAt: order.returnRequest?.requestedAt ?? order.placedAt,
@@ -343,7 +345,7 @@ export function OrderAlertStack({
                   <p className="truncate font-mono text-xs text-ink-500">{alert.orderId}</p>
                   <p className="mt-1 text-xs text-ink-500">
                     {isReturn
-                      ? 'Alert repeats every 5s until this return request is accepted or rejected'
+                      ? 'Alert repeats every 5s until this return is accepted or rejected'
                       : 'Alert repeats every 5s until this ticket is accepted or rejected'}
                     {isReturn && pendingReturns > 1 ? ` · ${pendingReturns} waiting` : ''}
                     {!isReturn && pendingOrders > 1 ? ` · ${pendingOrders} waiting` : ''}.
