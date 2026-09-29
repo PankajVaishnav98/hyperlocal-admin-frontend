@@ -8,6 +8,10 @@ import {
   type AdminOrderSocket,
 } from './realtime'
 
+async function flushSocketConnect() {
+  await Promise.resolve()
+}
+
 describe('admin order socket contract', () => {
   it('only allows http(s) origins', () => {
     expect(isAllowedSocketOrigin('https://api.hyperlocal.test')).toBe(true)
@@ -36,7 +40,7 @@ describe('admin order socket contract', () => {
     expect(createSocket).not.toHaveBeenCalled()
   })
 
-  it('subscribes to order events, reconnect, and cleans up io listeners', () => {
+  it('subscribes to order events, reconnect, and cleans up io listeners', async () => {
     const handlers: Record<string, (payload?: unknown) => void> = {}
     const ioOn = vi.fn((event: string, handler: () => void) => {
       handlers[`io:${event}`] = handler
@@ -73,6 +77,7 @@ describe('admin order socket contract', () => {
       onReturnResolved,
       onDisconnect,
     })
+    await flushSocketConnect()
 
     expect(createSocket).toHaveBeenCalledWith(
       'https://api.hyperlocal.test',
@@ -103,5 +108,37 @@ describe('admin order socket contract', () => {
     expect(socket.removeAllListeners).toHaveBeenCalled()
     expect(ioRemove).toHaveBeenCalled()
     expect(socket.disconnect).toHaveBeenCalled()
+  })
+
+  it('skips the StrictMode unmount so the first handshake is never torn down', async () => {
+    const disconnect = vi.fn()
+    const createSocket = vi.fn(() => ({
+      on: vi.fn(),
+      io: { on: vi.fn(), removeAllListeners: vi.fn() },
+      removeAllListeners: vi.fn(),
+      disconnect,
+    }))
+
+    const stopFirst = startAdminOrderSocket({
+      origin: 'https://api.hyperlocal.test',
+      createSocket,
+      onOrdersChanged: vi.fn(),
+      onReconnect: vi.fn(),
+    })
+    stopFirst()
+    await flushSocketConnect()
+    expect(createSocket).not.toHaveBeenCalled()
+
+    const stopSecond = startAdminOrderSocket({
+      origin: 'https://api.hyperlocal.test',
+      createSocket,
+      onOrdersChanged: vi.fn(),
+      onReconnect: vi.fn(),
+    })
+    await flushSocketConnect()
+    expect(createSocket).toHaveBeenCalledTimes(1)
+    expect(disconnect).not.toHaveBeenCalled()
+    stopSecond()
+    expect(disconnect).toHaveBeenCalledTimes(1)
   })
 })

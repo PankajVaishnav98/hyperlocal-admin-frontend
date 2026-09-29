@@ -138,7 +138,12 @@ export function OrderAlertHost({ enabled }: { enabled: boolean }) {
       fetchItems: () => Promise<Array<{ id: string; orderNumber: string; placedAt: string }>>,
       hydratedRef: { current: boolean },
     ) => {
-      const result = await fetchItems()
+      let result: Array<{ id: string; orderNumber: string; placedAt: string }>
+      try {
+        result = await fetchItems()
+      } catch {
+        return
+      }
       const previous = queueFor(kind)
       const next = reconcilePendingAlerts(previous, result, kind)
       const grew = next.some((alert) => !previous.some((item) => item.orderId === alert.orderId))

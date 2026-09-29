@@ -79,37 +79,54 @@ export function startAdminOrderSocket(input: {
     return () => undefined
   }
 
-  const socket = input.createSocket(input.origin, adminSocketOptions())
-  socket.io.on('reconnect', input.onReconnect)
-  if (input.onDisconnect) {
-    socket.on('disconnect', input.onDisconnect)
-  }
-  for (const event of ORDER_SOCKET_EVENTS) {
-    socket.on(event, (payload) => {
-      input.onOrdersChanged()
-      if (event === 'order:placed') {
-        input.onOrderPlaced?.(payload)
-      }
-      if (
-        event === 'order:accepted' ||
-        event === 'order:cancelled' ||
-        event === 'order:completed'
-      ) {
-        input.onOrderResolved?.(payload)
-      }
-      if (event === 'order:return_requested') {
-        input.onReturnRequested?.(payload)
-      }
-      if (event === 'order:return_completed' || event === 'order:return_rejected' || event === 'order:return_accepted') {
-        input.onReturnResolved?.(payload)
-      }
-    })
+  let socket: AdminOrderSocket | null = null
+  let cancelled = false
+
+  const attach = () => {
+    if (cancelled) return
+    socket = input.createSocket(input.origin, adminSocketOptions())
+    socket.io.on('reconnect', input.onReconnect)
+    if (input.onDisconnect) {
+      socket.on('disconnect', input.onDisconnect)
+    }
+    for (const event of ORDER_SOCKET_EVENTS) {
+      socket.on(event, (payload) => {
+        input.onOrdersChanged()
+        if (event === 'order:placed') {
+          input.onOrderPlaced?.(payload)
+        }
+        if (
+          event === 'order:accepted' ||
+          event === 'order:cancelled' ||
+          event === 'order:completed'
+        ) {
+          input.onOrderResolved?.(payload)
+        }
+        if (event === 'order:return_requested') {
+          input.onReturnRequested?.(payload)
+        }
+        if (
+          event === 'order:return_completed' ||
+          event === 'order:return_rejected' ||
+          event === 'order:return_accepted'
+        ) {
+          input.onReturnResolved?.(payload)
+        }
+      })
+    }
   }
 
+  // React StrictMode unmounts the first effect synchronously. Defer connect so that
+  // fake teardown never disconnects a handshake that has not finished.
+  queueMicrotask(attach)
+
   return () => {
+    cancelled = true
+    if (!socket) return
     socket.removeAllListeners()
     socket.io.removeAllListeners()
     socket.disconnect()
+    socket = null
   }
 }
 
