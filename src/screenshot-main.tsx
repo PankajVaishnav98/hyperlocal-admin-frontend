@@ -11,6 +11,7 @@ import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
 import { ServiceAreaFormPage } from './pages/ServiceAreaFormPage'
+import { OrderAlertStack } from './features/ops/OrderAlertHost'
 import type { AnalysisReport } from './features/ops/types'
 import './app.css'
 
@@ -303,6 +304,21 @@ createRoot(document.getElementById('root')!).render(
           <MemoryRouter initialEntries={[path]}>
             {screen === 'orders' ? <FillOrdersSearch /> : null}
             {screen === 'catalog-import' ? <FillCatalogImport /> : null}
+            {screen === 'order-alert' || screen === 'analysis' ? (
+              <OrderAlertStack
+                alerts={[
+                  {
+                    eventId: 'evt_demo',
+                    orderId: 'ord_1',
+                    orderNumber: 'HL-20260924-184221',
+                    occurredAt: '2026-09-24T10:00:00.000Z',
+                  },
+                ]}
+                audioUnlocked
+                onDismiss={() => undefined}
+                onUnlock={() => undefined}
+              />
+            ) : null}
             <Routes>
               <Route path="/analysis" element={<AnalysisPage />} />
               <Route path="/products/:productId" element={<ProductFormPage />} />

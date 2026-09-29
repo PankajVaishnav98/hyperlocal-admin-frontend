@@ -20,7 +20,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import { Badge, BrandMark, Button } from '../components/ui/Primitives'
 import { useAuth } from '../features/auth/authContext'
-import { useAdminOrderSocket } from '../features/ops/realtime'
+import { OrderAlertHost } from '../features/ops/OrderAlertHost'
 import { cn } from '../utils/cn'
 
 const links = [
@@ -77,13 +77,14 @@ export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [desktopCollapsed, setDesktopCollapsed] = useState(false)
   const auth = useAuth()
-  useAdminOrderSocket(auth.status === 'authenticated')
+  const authenticated = auth.status === 'authenticated'
   const displayName =
-    auth.status === 'authenticated' ? auth.session.displayName : 'Administrator'
-  const email = auth.status === 'authenticated' ? auth.session.email : ''
+    authenticated ? auth.session.displayName : 'Administrator'
+  const email = authenticated ? auth.session.email : ''
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink-950">
+      <OrderAlertHost enabled={authenticated} />
       <a
         href="#main-content"
         className="fixed left-4 top-4 z-50 -translate-y-20 rounded-lg bg-ink-950 px-4 py-2 text-sm font-semibold text-white transition-transform focus:translate-y-0"

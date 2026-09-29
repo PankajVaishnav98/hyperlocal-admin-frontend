@@ -65,8 +65,8 @@ vi.mock('../features/ops/api', () => ({
   downloadCatalogImportTemplate: () => Promise.resolve(new Blob(['xlsx'])),
   importCatalogWorkbook: () => Promise.reject(new Error('not used')),
 }))
-vi.mock('../features/ops/realtime', () => ({
-  useAdminOrderSocket: () => undefined,
+vi.mock('../features/ops/OrderAlertHost', () => ({
+  OrderAlertHost: () => null,
 }))
 
 function renderRouter({

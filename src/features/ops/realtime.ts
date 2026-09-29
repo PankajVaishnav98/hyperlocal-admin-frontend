@@ -1,7 +1,3 @@
-import { io } from 'socket.io-client'
-import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-
 export const ADMIN_SOCKET_PATH = '/api/v1/socket.io'
 
 export const ORDER_SOCKET_EVENTS = [
@@ -53,9 +49,9 @@ export function adminSocketOptions() {
 }
 
 export interface AdminOrderSocket {
-  on: (event: string, handler: () => void) => void
+  on: (event: string, handler: (payload?: unknown) => void) => void
   io: {
-    on: (event: string, handler: () => void) => void
+    on: (event: string, handler: (...args: unknown[]) => void) => void
     removeAllListeners: () => void
   }
   removeAllListeners: () => void
@@ -72,6 +68,8 @@ export function startAdminOrderSocket(input: {
   createSocket: AdminSocketFactory
   onOrdersChanged: () => void
   onReconnect: () => void
+  onOrderPlaced?: (payload: unknown) => void
+  onDisconnect?: () => void
 }): () => void {
   if (!isAllowedSocketOrigin(input.origin)) {
     return () => undefined
@@ -79,8 +77,16 @@ export function startAdminOrderSocket(input: {
 
   const socket = input.createSocket(input.origin, adminSocketOptions())
   socket.io.on('reconnect', input.onReconnect)
+  if (input.onDisconnect) {
+    socket.on('disconnect', input.onDisconnect)
+  }
   for (const event of ORDER_SOCKET_EVENTS) {
-    socket.on(event, input.onOrdersChanged)
+    socket.on(event, (payload) => {
+      input.onOrdersChanged()
+      if (event === 'order:placed') {
+        input.onOrderPlaced?.(payload)
+      }
+    })
   }
 
   return () => {
@@ -103,25 +109,4 @@ export function invalidateAdminCatalogQueries(
 ) {
   void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
   void queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] })
-}
-
-export function useAdminOrderSocket(enabled: boolean) {
-  const queryClient = useQueryClient()
-
-  useEffect(() => {
-    if (!enabled || import.meta.env.VITE_SCREENSHOT === '1') return
-
-    const refreshOrders = () => invalidateAdminOrderQueries(queryClient)
-    const refreshAfterReconnect = () => {
-      invalidateAdminOrderQueries(queryClient)
-      invalidateAdminCatalogQueries(queryClient)
-    }
-
-    return startAdminOrderSocket({
-      origin: adminSocketOrigin(),
-      createSocket: (origin, options) => io(origin, options) as unknown as AdminOrderSocket,
-      onOrdersChanged: refreshOrders,
-      onReconnect: refreshAfterReconnect,
-    })
-  }, [enabled, queryClient])
 }

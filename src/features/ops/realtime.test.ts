@@ -37,7 +37,7 @@ describe('admin order socket contract', () => {
   })
 
   it('subscribes to order events, reconnect, and cleans up io listeners', () => {
-    const handlers: Record<string, () => void> = {}
+    const handlers: Record<string, (payload?: unknown) => void> = {}
     const ioOn = vi.fn((event: string, handler: () => void) => {
       handlers[`io:${event}`] = handler
     })
@@ -56,20 +56,31 @@ describe('admin order socket contract', () => {
     const createSocket = vi.fn(() => socket)
     const onOrdersChanged = vi.fn()
     const onReconnect = vi.fn()
+    const onOrderPlaced = vi.fn()
+    const onDisconnect = vi.fn()
 
     const stop = startAdminOrderSocket({
       origin: 'https://api.hyperlocal.test',
       createSocket,
       onOrdersChanged,
       onReconnect,
+      onOrderPlaced,
+      onDisconnect,
     })
 
     expect(createSocket).toHaveBeenCalledWith(
       'https://api.hyperlocal.test',
       expect.objectContaining({ path: ADMIN_SOCKET_PATH, reconnection: true }),
     )
-    handlers['order:placed']?.()
+    const payload = { eventId: 'evt_1', orderId: 'ord_9', orderNumber: 'HL-100' }
+    handlers['order:placed']?.(payload)
     expect(onOrdersChanged).toHaveBeenCalledTimes(1)
+    expect(onOrderPlaced).toHaveBeenCalledWith(payload)
+    handlers['order:accepted']?.({ orderId: 'ord_9' })
+    expect(onOrdersChanged).toHaveBeenCalledTimes(2)
+    expect(onOrderPlaced).toHaveBeenCalledTimes(1)
+    handlers['disconnect']?.()
+    expect(onDisconnect).toHaveBeenCalledTimes(1)
     handlers['io:reconnect']?.()
     expect(onReconnect).toHaveBeenCalledTimes(1)
     stop()
