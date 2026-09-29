@@ -12,6 +12,8 @@ import {
   Input,
 } from '../components/ui/Primitives'
 import { ApiError } from '../api/errors'
+import { LegalFooter } from '../components/LegalFooter'
+import { SHOP_NAME } from '../brand'
 import { useAuth } from '../features/auth/authContext'
 
 const loginSchema = z.object({
@@ -79,7 +81,7 @@ export function LoginPage() {
         <div className="flex items-center gap-3">
           <BrandMark className="bg-white text-ink-950 shadow-none" />
           <span className="font-display text-lg font-semibold tracking-tight">
-            ApnaMart
+            {SHOP_NAME}
           </span>
         </div>
         <div className="max-w-xl">
@@ -94,7 +96,7 @@ export function LoginPage() {
             with server-enforced administrator access.
           </p>
         </div>
-        <p className="text-sm text-ink-400">ApnaMart administration</p>
+        <p className="text-sm text-ink-400">{SHOP_NAME} administration</p>
       </section>
 
       <section className="relative flex min-h-screen items-center justify-center px-5 py-12 sm:px-8">
@@ -102,7 +104,7 @@ export function LoginPage() {
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <BrandMark />
             <span className="font-display text-lg font-semibold text-ink-950">
-              ApnaMart
+              {SHOP_NAME}
             </span>
           </div>
           <Card className="p-6 sm:p-8">
@@ -145,6 +147,7 @@ export function LoginPage() {
               </Button>
             </form>
           </Card>
+          <LegalFooter className="mt-6 justify-center" />
         </div>
       </section>
     </main>

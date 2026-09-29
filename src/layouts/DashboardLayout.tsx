@@ -19,6 +19,8 @@ import {
 import { NavLink, Outlet } from 'react-router-dom'
 
 import { Badge, BrandMark, Button } from '../components/ui/Primitives'
+import { LegalFooter } from '../components/LegalFooter'
+import { SHOP_NAME } from '../brand'
 import { useAuth } from '../features/auth/authContext'
 import { OrderAlertHost } from '../features/ops/OrderAlertHost'
 import { cn } from '../utils/cn'
@@ -104,7 +106,7 @@ export function DashboardLayout() {
           {!desktopCollapsed && (
             <div>
               <p className="font-display text-base font-semibold tracking-tight">
-                ApnaMart
+                {SHOP_NAME}
               </p>
               <p className="text-xs text-ink-500">Admin console</p>
             </div>
@@ -138,7 +140,7 @@ export function DashboardLayout() {
               <div className="flex items-center gap-3">
                 <BrandMark />
                 <div>
-                  <p className="font-display text-base font-semibold">ApnaMart</p>
+                  <p className="font-display text-base font-semibold">{SHOP_NAME}</p>
                   <p className="text-xs text-ink-500">Admin console</p>
                 </div>
               </div>
@@ -218,6 +220,9 @@ export function DashboardLayout() {
         <main id="main-content" className="mx-auto max-w-[90rem] p-5 sm:p-7 lg:p-9">
           <Outlet />
         </main>
+        <footer className="border-t border-ink-100 px-5 py-4 sm:px-7 lg:px-9">
+          <LegalFooter />
+        </footer>
       </div>
     </div>
   )

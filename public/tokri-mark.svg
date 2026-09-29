@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tokri">
+  <title>Tokri</title>
+  <rect width="512" height="512" rx="112" fill="#0E8C8E"/>
+  <path d="M148 256C148 164 256 164 256 256" fill="none" stroke="#0F303A" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 256C256 164 364 164 364 256" fill="none" stroke="#0F303A" stroke-width="22" stroke-linecap="round"/>
+  <ellipse cx="338" cy="178" rx="30" ry="22" fill="#D6E8D6"/>
+  <ellipse cx="218" cy="236" rx="38" ry="34" fill="#E0745E"/>
+  <ellipse cx="264" cy="220" rx="36" ry="32" fill="#F4B13B"/>
+  <ellipse cx="312" cy="236" rx="34" ry="30" fill="#F2E6D6"/>
+  <path d="M138 256h236l-26 176c-4 18-20 30-38 30H202c-18 0-34-12-38-30z" fill="#F2E6D6"/>
+  <path d="M138 256h236" stroke="#0F303A" stroke-width="20" stroke-linecap="round"/>
+  <g fill="none" stroke="#375C63" stroke-width="10" stroke-linecap="round">
+    <path d="M156 292h200"/>
+    <path d="M164 330h184"/>
+    <path d="M172 368h168"/>
+    <path d="M182 406h148"/>
+  </g>
+  <g fill="none" stroke="#0F303A" stroke-width="9" stroke-linecap="round" opacity=".8">
+    <path d="M198 264l10 186"/>
+    <path d="M256 264v186"/>
+    <path d="M314 264l-10 186"/>
+  </g>
+</svg>

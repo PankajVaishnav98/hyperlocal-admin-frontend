@@ -9,6 +9,7 @@ import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomeBannerFormPage } from '../pages/HomeBannerFormPage'
 import { HomeBannersPage } from '../pages/HomeBannersPage'
+import { LegalPage } from '../pages/LegalPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { OrdersPage } from '../pages/OrdersPage'
@@ -24,6 +25,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/legal/:slug" element={<LegalPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />

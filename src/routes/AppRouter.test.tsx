@@ -194,6 +194,16 @@ describe('AppRouter', () => {
     expect(await screen.findByText('No home banners yet')).toBeInTheDocument()
   })
 
+  it('renders public legal policy pages without a session', async () => {
+    renderRouter({ path: '/legal/returns' })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Order return policy' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/30 minutes of delivery completion/i)).toBeInTheDocument()
+    expect(screen.queryByText(/123456/)).not.toBeInTheDocument()
+  })
+
   it('renders a not-found page for unknown locations', () => {
     renderRouter({ path: '/not-a-route' })
 

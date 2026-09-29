@@ -227,14 +227,15 @@ export function Skeleton({
 
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span
+    <img
+      alt="Tokri"
       className={cn(
-        'grid size-10 place-items-center rounded-xl bg-ink-950 font-display text-sm font-bold tracking-tight text-white shadow-lg shadow-ink-950/15',
+        'size-10 rounded-xl object-cover shadow-lg shadow-ink-950/15',
         className,
       )}
-      aria-hidden="true"
-    >
-      A
-    </span>
+      height={40}
+      src="/tokri-mark.svg"
+      width={40}
+    />
   )
 }
