@@ -69,6 +69,7 @@ export function startAdminOrderSocket(input: {
   onOrdersChanged: () => void
   onReconnect: () => void
   onOrderPlaced?: (payload: unknown) => void
+  onOrderResolved?: (payload: unknown) => void
   onDisconnect?: () => void
 }): () => void {
   if (!isAllowedSocketOrigin(input.origin)) {
@@ -85,6 +86,13 @@ export function startAdminOrderSocket(input: {
       input.onOrdersChanged()
       if (event === 'order:placed') {
         input.onOrderPlaced?.(payload)
+      }
+      if (
+        event === 'order:accepted' ||
+        event === 'order:cancelled' ||
+        event === 'order:completed'
+      ) {
+        input.onOrderResolved?.(payload)
       }
     })
   }

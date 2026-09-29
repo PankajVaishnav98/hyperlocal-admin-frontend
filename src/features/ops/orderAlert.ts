@@ -1,6 +1,12 @@
 export const ORDER_ALERT_CHANNEL = 'hyperlocal-admin-order-alerts'
-export const ORDER_CATCHUP_WINDOW_MS = 90_000
-export const ORDER_ALERT_SEEN_STORAGE_KEY = 'hyperlocal.admin.orderAlert.seen'
+export const ORDER_ALERT_REPEAT_MS = 5_000
+export const ORDER_ALERT_PENDING_STORAGE_KEY = 'hyperlocal.admin.orderAlert.pending'
+export const ORDER_ALERT_LAST_PLAY_STORAGE_KEY = 'hyperlocal.admin.orderAlert.lastPlay'
+export const ORDER_ALERT_RESOLVED_EVENTS = [
+  'order:accepted',
+  'order:cancelled',
+  'order:completed',
+] as const
 
 export type OrderAlert = {
   eventId: string
@@ -9,18 +15,12 @@ export type OrderAlert = {
   occurredAt: string
 }
 
-export type OrderAlertBroadcast = {
-  type: 'placed'
-  alert: OrderAlert
-}
+export type OrderAlertBroadcast =
+  | { type: 'upsert'; alert: OrderAlert }
+  | { type: 'remove'; orderId: string }
+  | { type: 'sync'; alerts: OrderAlert[] }
 
-type SeenStore = {
-  add(id: string): boolean
-  has(id: string): boolean
-  snapshot(): string[]
-}
-
-export function parseOrderPlacedPayload(raw: unknown): OrderAlert | null {
+export function parseOrderEventPayload(raw: unknown): OrderAlert | null {
   if (!raw || typeof raw !== 'object') return null
   const record = raw as Record<string, unknown>
   const orderId = typeof record.orderId === 'string' ? record.orderId.trim() : ''
@@ -40,95 +40,96 @@ export function parseOrderPlacedPayload(raw: unknown): OrderAlert | null {
   return { eventId, orderId, orderNumber, occurredAt }
 }
 
-export function createSeenOrderStore(
-  initial: string[] = [],
-  limit = 200,
-): SeenStore {
-  const ids = [...initial]
-  const index = new Set(initial)
+export const parseOrderPlacedPayload = parseOrderEventPayload
 
-  return {
-    add(id: string) {
-      if (!id || index.has(id)) return false
-      index.add(id)
-      ids.push(id)
-      while (ids.length > limit) {
-        const removed = ids.shift()
-        if (removed) index.delete(removed)
-      }
-      return true
-    },
-    has(id: string) {
-      return index.has(id)
-    },
-    snapshot() {
-      return [...ids]
-    },
-  }
+export function isResolvedOrderEvent(event: string): boolean {
+  return (ORDER_ALERT_RESOLVED_EVENTS as readonly string[]).includes(event)
 }
 
-export function loadSeenOrderIds(storage: Pick<Storage, 'getItem'> | null): string[] {
+export function upsertPendingAlert(pending: OrderAlert[], alert: OrderAlert): OrderAlert[] {
+  if (!alert.orderId) return pending
+  return [alert, ...pending.filter((item) => item.orderId !== alert.orderId)].slice(0, 25)
+}
+
+export function removePendingAlert(pending: OrderAlert[], orderId: string): OrderAlert[] {
+  if (!orderId) return pending
+  return pending.filter((item) => item.orderId !== orderId)
+}
+
+export function reconcilePendingAlerts(
+  pending: OrderAlert[],
+  placed: Array<{ id: string; orderNumber: string; placedAt: string }>,
+): OrderAlert[] {
+  const existing = new Map(pending.map((alert) => [alert.orderId, alert]))
+  const next: OrderAlert[] = []
+  for (const order of placed) {
+    if (!order.id) continue
+    const current = existing.get(order.id)
+    next.push(
+      current ?? {
+        eventId: `placed:${order.id}`,
+        orderId: order.id,
+        orderNumber: order.orderNumber || order.id,
+        occurredAt: order.placedAt,
+      },
+    )
+  }
+  return next
+}
+
+export function loadPendingAlerts(storage: Pick<Storage, 'getItem'> | null): OrderAlert[] {
   if (!storage) return []
   try {
-    const raw = storage.getItem(ORDER_ALERT_SEEN_STORAGE_KEY)
+    const raw = storage.getItem(ORDER_ALERT_PENDING_STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    const alerts: OrderAlert[] = []
+    for (const item of parsed) {
+      const alert = parseOrderEventPayload(item)
+      if (alert) alerts.push(alert)
+    }
+    return alerts
   } catch {
     return []
   }
 }
 
-export function persistSeenOrderIds(
-  storage: Pick<Storage, 'setItem'> | null,
-  ids: string[],
+export function persistPendingAlerts(
+  storage: Pick<Storage, 'setItem' | 'removeItem'> | null,
+  alerts: OrderAlert[],
 ) {
   if (!storage) return
   try {
-    storage.setItem(ORDER_ALERT_SEEN_STORAGE_KEY, JSON.stringify(ids.slice(-200)))
+    if (alerts.length === 0) {
+      storage.removeItem(ORDER_ALERT_PENDING_STORAGE_KEY)
+      return
+    }
+    storage.setItem(ORDER_ALERT_PENDING_STORAGE_KEY, JSON.stringify(alerts.slice(0, 25)))
   } catch {
-    // Ignore quota / private-mode failures; in-memory dedupe still works.
+    // Ignore quota / private-mode failures; in-memory pending still works.
   }
 }
 
-export function missedPlacedOrders(input: {
-  orders: Array<{ id: string; orderNumber: string; placedAt: string }>
-  seen: SeenStore
-  disconnectedAt: number
-  now?: number
-  windowMs?: number
-}): OrderAlert[] {
-  const now = input.now ?? Date.now()
-  const windowMs = input.windowMs ?? ORDER_CATCHUP_WINDOW_MS
-  const since = Math.max(0, input.disconnectedAt - 1_000)
-  const cutoff = now - windowMs
-
-  const alerts: OrderAlert[] = []
-  for (const order of input.orders) {
-    const placedAt = Date.parse(order.placedAt)
-    if (!Number.isFinite(placedAt)) continue
-    if (placedAt < since || placedAt < cutoff) continue
-    const eventId = `catchup:${order.id}:${order.placedAt}`
-    if (input.seen.has(order.id) || input.seen.has(eventId)) continue
-    alerts.push({
-      eventId,
-      orderId: order.id,
-      orderNumber: order.orderNumber || order.id,
-      occurredAt: order.placedAt,
-    })
+export function claimRepeatPlay(
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null,
+  now: number,
+  intervalMs = ORDER_ALERT_REPEAT_MS,
+): boolean {
+  if (!storage) return true
+  try {
+    const raw = storage.getItem(ORDER_ALERT_LAST_PLAY_STORAGE_KEY)
+    if (!raw) {
+      storage.setItem(ORDER_ALERT_LAST_PLAY_STORAGE_KEY, String(now))
+      return true
+    }
+    const last = Number(raw)
+    if (Number.isFinite(last) && now - last < intervalMs - 250) return false
+    storage.setItem(ORDER_ALERT_LAST_PLAY_STORAGE_KEY, String(now))
+    return true
+  } catch {
+    return true
   }
-  return alerts
-}
-
-export function rememberOrder(seen: SeenStore, alert: OrderAlert, storage?: Pick<Storage, 'setItem'> | null) {
-  seen.add(alert.eventId)
-  seen.add(alert.orderId)
-  persistSeenOrderIds(storage ?? null, seen.snapshot())
-}
-
-export function shouldAnnounceAlert(seen: SeenStore, alert: OrderAlert): boolean {
-  return !seen.has(alert.eventId) && !seen.has(alert.orderId)
 }
 
 type OscillatorLike = {
@@ -247,13 +248,13 @@ export function createOrderAlertChannel(input: {
   subscribe: (handler: (message: OrderAlertBroadcast) => void) => () => void
 }) {
   return {
-    publish(alert: OrderAlert) {
-      input.post({ type: 'placed', alert })
+    publish(message: OrderAlertBroadcast) {
+      input.post(message)
     },
-    listen(handler: (alert: OrderAlert) => void) {
+    listen(handler: (message: OrderAlertBroadcast) => void) {
       return input.subscribe((message) => {
-        if (message?.type !== 'placed' || !message.alert?.orderId) return
-        handler(message.alert)
+        if (!message || typeof message !== 'object') return
+        handler(message)
       })
     },
   }

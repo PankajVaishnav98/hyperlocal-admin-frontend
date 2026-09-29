@@ -1,86 +1,88 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  claimRepeatPlay,
   createAlertAudio,
   createOrderAlertChannel,
-  createSeenOrderStore,
-  missedPlacedOrders,
-  parseOrderPlacedPayload,
-  shouldAnnounceAlert,
+  parseOrderEventPayload,
+  reconcilePendingAlerts,
+  removePendingAlert,
+  upsertPendingAlert,
   type AlertAudioContext,
+  type OrderAlert,
   type OrderAlertBroadcast,
 } from './orderAlert'
 
-describe('order placed alert contract', () => {
+const sample: OrderAlert = {
+  eventId: 'evt_1',
+  orderId: 'ord_9',
+  orderNumber: 'HL-100',
+  occurredAt: '2026-09-29T08:00:00.000Z',
+}
+
+describe('persistent placed-order alerts', () => {
   it('reads order id and number from the existing socket payload', () => {
     expect(
-      parseOrderPlacedPayload({
+      parseOrderEventPayload({
         eventId: 'evt_1',
         orderId: 'ord_9',
         orderNumber: 'HL-100',
         status: 'placed',
         occurredAt: '2026-09-29T08:00:00.000Z',
       }),
-    ).toEqual({
-      eventId: 'evt_1',
-      orderId: 'ord_9',
-      orderNumber: 'HL-100',
-      occurredAt: '2026-09-29T08:00:00.000Z',
-    })
+    ).toEqual(sample)
   })
 
   it('rejects payloads without an order id', () => {
-    expect(parseOrderPlacedPayload({})).toBeNull()
-    expect(parseOrderPlacedPayload(null)).toBeNull()
+    expect(parseOrderEventPayload({})).toBeNull()
+    expect(parseOrderEventPayload(null)).toBeNull()
   })
 
-  it('dedupes by event id or order id', () => {
-    const seen = createSeenOrderStore()
-    const alert = {
-      eventId: 'evt_1',
-      orderId: 'ord_9',
-      orderNumber: 'HL-100',
-      occurredAt: '2026-09-29T08:00:00.000Z',
-    }
-    expect(shouldAnnounceAlert(seen, alert)).toBe(true)
-    seen.add(alert.eventId)
-    seen.add(alert.orderId)
-    expect(shouldAnnounceAlert(seen, { ...alert, eventId: 'evt_2' })).toBe(false)
-  })
-
-  it('catch-up only returns recent placed orders after a disconnect', () => {
-    const seen = createSeenOrderStore(['ord_old'])
-    const now = Date.parse('2026-09-29T08:02:00.000Z')
-    const alerts = missedPlacedOrders({
-      seen,
-      disconnectedAt: Date.parse('2026-09-29T08:01:00.000Z'),
-      now,
-      orders: [
-        {
-          id: 'ord_old',
-          orderNumber: 'HL-1',
-          placedAt: '2026-09-29T07:00:00.000Z',
-        },
-        {
-          id: 'ord_new',
-          orderNumber: 'HL-2',
-          placedAt: '2026-09-29T08:01:20.000Z',
-        },
-        {
-          id: 'ord_stale',
-          orderNumber: 'HL-0',
-          placedAt: '2026-09-29T06:00:00.000Z',
-        },
-      ],
+  it('keeps every placed order pending until it is removed on accept/cancel', () => {
+    const withOne = upsertPendingAlert([], sample)
+    const withTwo = upsertPendingAlert(withOne, {
+      eventId: 'evt_2',
+      orderId: 'ord_8',
+      orderNumber: 'HL-101',
+      occurredAt: '2026-09-29T08:01:00.000Z',
     })
-    expect(alerts).toEqual([
+    expect(withTwo.map((alert) => alert.orderId)).toEqual(['ord_8', 'ord_9'])
+    expect(removePendingAlert(withTwo, 'ord_9').map((alert) => alert.orderId)).toEqual(['ord_8'])
+  })
+
+  it('hydrates all currently placed tickets, not only a 90s window', () => {
+    expect(
+      reconcilePendingAlerts([sample], [
+        { id: 'ord_old', orderNumber: 'HL-1', placedAt: '2026-09-29T06:00:00.000Z' },
+        { id: 'ord_9', orderNumber: 'HL-100', placedAt: '2026-09-29T08:00:00.000Z' },
+      ]).map((alert) => alert.orderId),
+    ).toEqual(['ord_old', 'ord_9'])
+  })
+
+  it('drops alerts that are no longer in the placed list after accept/cancel', () => {
+    expect(
+      reconcilePendingAlerts([sample], [{ id: 'ord_8', orderNumber: 'HL-101', placedAt: '2026-09-29T08:01:00.000Z' }]),
+    ).toEqual([
       {
-        eventId: 'catchup:ord_new:2026-09-29T08:01:20.000Z',
-        orderId: 'ord_new',
-        orderNumber: 'HL-2',
-        occurredAt: '2026-09-29T08:01:20.000Z',
+        eventId: 'placed:ord_8',
+        orderId: 'ord_8',
+        orderNumber: 'HL-101',
+        occurredAt: '2026-09-29T08:01:00.000Z',
       },
     ])
+  })
+
+  it('spaces repeat chimes by the 5s interval across tabs', () => {
+    const memory: Record<string, string> = {}
+    const store = {
+      getItem: (key: string) => memory[key] ?? null,
+      setItem: (key: string, value: string) => {
+        memory[key] = value
+      },
+    }
+    expect(claimRepeatPlay(store, 1_000)).toBe(true)
+    expect(claimRepeatPlay(store, 1_200)).toBe(false)
+    expect(claimRepeatPlay(store, 6_000)).toBe(true)
   })
 
   it('plays a sharp square-wave burst after the audio context is running', async () => {
@@ -155,7 +157,7 @@ describe('order placed alert contract', () => {
     expect(audio.unlocked).toBe(false)
   })
 
-  it('forwards placed alerts across a BroadcastChannel-shaped bus', () => {
+  it('syncs upsert and remove across a BroadcastChannel-shaped bus', () => {
     const handlers: Array<(message: OrderAlertBroadcast) => void> = []
     const channel = createOrderAlertChannel({
       post: (message) => handlers.forEach((handler) => handler(message)),
@@ -165,13 +167,12 @@ describe('order placed alert contract', () => {
       },
     })
     const received: string[] = []
-    channel.listen((alert) => received.push(alert.orderId))
-    channel.publish({
-      eventId: 'evt_1',
-      orderId: 'ord_9',
-      orderNumber: 'HL-100',
-      occurredAt: '2026-09-29T08:00:00.000Z',
+    channel.listen((message) => {
+      if (message.type === 'upsert') received.push(`up:${message.alert.orderId}`)
+      if (message.type === 'remove') received.push(`rm:${message.orderId}`)
     })
-    expect(received).toEqual(['ord_9'])
+    channel.publish({ type: 'upsert', alert: sample })
+    channel.publish({ type: 'remove', orderId: 'ord_9' })
+    expect(received).toEqual(['up:ord_9', 'rm:ord_9'])
   })
 })

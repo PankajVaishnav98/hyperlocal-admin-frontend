@@ -27,11 +27,11 @@ describe('OrderAlertStack', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('status')).toHaveTextContent('New COD order')
+    expect(screen.getByRole('status')).toHaveTextContent('COD order needs accept or reject')
     expect(screen.getByText('Order HL-20260929-1')).toBeInTheDocument()
     expect(screen.getByText('ord_9')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open order' })).toHaveAttribute('href', '/orders/ord_9')
-    await user.click(screen.getByRole('button', { name: 'Dismiss order HL-20260929-1' }))
+    await user.click(screen.getByRole('button', { name: 'Hide order HL-20260929-1 until next alert' }))
     expect(onDismiss).toHaveBeenCalledWith('ord_9')
     expect(screen.queryByRole('button', { name: 'Enable loud order alerts' })).not.toBeInTheDocument()
   })
