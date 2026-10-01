@@ -17,6 +17,18 @@ import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminHomeBanner, HomeBannerLinkType } from '../features/ops/types'
 import { PageHeader } from '../features/ops/ui'
 
+function isSafeHttpsUrl(value: string): boolean {
+  const trimmed = value.trim()
+  if (!trimmed.toLowerCase().startsWith('https://')) return false
+  if (/javascript:/i.test(trimmed) || /[\s<>]/.test(trimmed)) return false
+  try {
+    const url = new URL(trimmed)
+    return url.protocol === 'https:' && !url.username && !url.password
+  } catch {
+    return false
+  }
+}
+
 const schema = z
   .object({
     imageUrl: z
@@ -24,11 +36,10 @@ const schema = z
       .trim()
       .url('Use a full https URL')
       .refine((value) => value.startsWith('https://') || value.includes('/api/v1/media/'), 'Upload an image first'),
-    title: z.string().trim().max(80),
-    subtitle: z.string().trim().max(160),
-    linkType: z.enum(['none', 'category', 'product']),
+    linkType: z.enum(['none', 'category', 'product', 'url']),
     categoryId: z.string(),
     productId: z.string(),
+    linkUrl: z.string(),
     sortOrder: z.coerce.number().int().min(0).max(10_000),
     isActive: z.boolean(),
   })
@@ -39,22 +50,24 @@ const schema = z
     if (value.linkType === 'product' && !value.productId) {
       context.addIssue({ code: 'custom', path: ['productId'], message: 'Choose a product' })
     }
+    if (value.linkType === 'url' && !isSafeHttpsUrl(value.linkUrl)) {
+      context.addIssue({ code: 'custom', path: ['linkUrl'], message: 'Use a full https URL' })
+    }
   })
 
 function fieldsFrom(banner?: AdminHomeBanner) {
   return {
     imageUrl: banner?.imageUrl ?? '',
-    title: banner?.title ?? '',
-    subtitle: banner?.subtitle ?? '',
     linkType: (banner?.linkType ?? 'none') as HomeBannerLinkType,
     categoryId: banner?.categoryId ?? '',
     productId: banner?.productId ?? '',
+    linkUrl: banner?.linkUrl ?? '',
     sortOrder: String(banner?.sortOrder ?? 10),
     isActive: banner?.isActive ?? true,
   }
 }
 
-function HomeBannerForm({
+export function HomeBannerForm({
   bannerId,
   initial,
 }: {
@@ -83,13 +96,14 @@ function HomeBannerForm({
       setErrors({})
       const payload = {
         imageUrl: parsed.data.imageUrl,
-        title: parsed.data.title,
-        subtitle: parsed.data.subtitle,
+        title: '',
+        subtitle: '',
         linkType: parsed.data.linkType,
         sortOrder: parsed.data.sortOrder,
         isActive: parsed.data.isActive,
         ...(parsed.data.linkType === 'category' ? { categoryId: parsed.data.categoryId } : {}),
         ...(parsed.data.linkType === 'product' ? { productId: parsed.data.productId } : {}),
+        ...(parsed.data.linkType === 'url' ? { linkUrl: parsed.data.linkUrl.trim() } : {}),
       }
       return isNew ? createHomeBanner(payload) : updateHomeBanner(bannerId, payload)
     },
@@ -114,7 +128,7 @@ function HomeBannerForm({
     <div className="space-y-6">
       <PageHeader
         title={isNew ? 'New home banner' : 'Edit home banner'}
-        description="Shown on the customer Home slider. Leave title and subtitle blank to show only the image."
+        description="Image-only slider on customer Home. Optionally link to a category, a product, or any https URL."
       />
       <Card className="max-w-2xl p-6">
         <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
@@ -123,18 +137,6 @@ function HomeBannerForm({
             value={values.imageUrl}
             error={errors.imageUrl}
             onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))}
-          />
-          <Input
-            label="Title (optional)"
-            value={values.title}
-            error={errors.title}
-            onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
-          />
-          <Input
-            label="Subtitle (optional)"
-            value={values.subtitle}
-            error={errors.subtitle}
-            onChange={(event) => setValues((current) => ({ ...current, subtitle: event.target.value }))}
           />
           <div className="space-y-2">
             <label htmlFor="banner-link-type" className="block text-sm font-semibold text-ink-800">
@@ -154,6 +156,7 @@ function HomeBannerForm({
               <option value="none">No destination</option>
               <option value="category">Category</option>
               <option value="product">Product</option>
+              <option value="url">Custom URL</option>
             </select>
           </div>
           {values.linkType === 'category' ? (
@@ -201,6 +204,16 @@ function HomeBannerForm({
               </select>
               {errors.productId ? <p className="text-xs text-danger-600">{errors.productId}</p> : null}
             </div>
+          ) : null}
+          {values.linkType === 'url' ? (
+            <Input
+              id="banner-link-url"
+              label="URL"
+              value={values.linkUrl}
+              error={errors.linkUrl}
+              placeholder="https://example.com/offer"
+              onChange={(event) => setValues((current) => ({ ...current, linkUrl: event.target.value }))}
+            />
           ) : null}
           <Input
             label="Sort order"

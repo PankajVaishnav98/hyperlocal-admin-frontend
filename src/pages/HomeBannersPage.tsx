@@ -20,6 +20,22 @@ import { paginateItems, textMatches } from '../utils/listQuery'
 import { useDebouncedValue } from '../utils/useDebouncedValue'
 import { useResettingPage } from '../utils/useResettingPage'
 
+function bannerName(banner: AdminHomeBanner): string {
+  try {
+    const segment = new URL(banner.imageUrl).pathname.split('/').filter(Boolean).pop()
+    return segment ? decodeURIComponent(segment) : 'Banner'
+  } catch {
+    return 'Banner'
+  }
+}
+
+function bannerLinkLabel(banner: AdminHomeBanner): string {
+  if (banner.linkType === 'category') return `Category ${banner.categoryId ?? ''}`
+  if (banner.linkType === 'product') return `Product ${banner.productId ?? ''}`
+  if (banner.linkType === 'url') return banner.linkUrl || 'Custom URL'
+  return 'No link'
+}
+
 export function HomeBannersPage() {
   const queryClient = useQueryClient()
   const [q, setQ] = useState('')
@@ -36,7 +52,16 @@ export function HomeBannersPage() {
     return (query.data ?? []).filter((banner) => {
       if (active === 'true' && !banner.isActive) return false
       if (active === 'false' && banner.isActive) return false
-      return textMatches(debouncedQ, banner.title, banner.subtitle, banner.linkType, banner.categoryId, banner.productId)
+      return textMatches(
+        debouncedQ,
+        banner.title,
+        banner.subtitle,
+        banner.linkType,
+        banner.categoryId,
+        banner.productId,
+        banner.linkUrl,
+        banner.imageUrl,
+      )
     })
   }, [active, debouncedQ, query.data])
   const paged = paginateItems(filtered, page, ADMIN_LIST_PAGE_SIZE)
@@ -63,7 +88,7 @@ export function HomeBannersPage() {
         <input
           value={q}
           onChange={(event) => setQ(event.target.value)}
-          placeholder="Search title or link"
+          placeholder="Search image or link"
           className="h-11 rounded-xl border border-ink-200 px-3.5 text-sm"
           aria-label="Search home banners"
         />
@@ -87,7 +112,7 @@ export function HomeBannersPage() {
         emptyDescription={
           hasFilters
             ? 'Try a different search or active filter.'
-            : 'Add an image URL and optional title. Link it to a category, a product, or nothing.'
+            : 'Add an image. Optionally link it to a category, a product, or any https URL.'
         }
         emptyAction={hasFilters ? undefined : <PrimaryLink to="/home-banners/new">New banner</PrimaryLink>}
       >
@@ -97,16 +122,12 @@ export function HomeBannersPage() {
               <tr key={banner.id} className="text-ink-800">
                 <td className="px-4 py-3">
                   <Link className="font-semibold text-ink-950 hover:underline" to={`/home-banners/${banner.id}`}>
-                    {banner.title || 'Untitled banner'}
+                    {bannerName(banner)}
                   </Link>
-                  <p className="max-w-md truncate text-xs text-ink-500">{banner.subtitle || banner.imageUrl}</p>
+                  <p className="max-w-md truncate text-xs text-ink-500">{banner.imageUrl}</p>
                 </td>
                 <td className="px-4 py-3 text-xs">
-                  {banner.linkType === 'category'
-                    ? `Category ${banner.categoryId}`
-                    : banner.linkType === 'product'
-                      ? `Product ${banner.productId}`
-                      : 'No link'}
+                  {bannerLinkLabel(banner)}
                 </td>
                 <td className="px-4 py-3">{banner.sortOrder}</td>
                 <td className="px-4 py-3">

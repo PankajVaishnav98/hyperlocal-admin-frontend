@@ -7,6 +7,7 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { apiClient } from './api/client'
 import { AnalysisPage } from './pages/AnalysisPage'
 import { CatalogImportPage } from './pages/CatalogImportPage'
+import { HomeBannerForm } from './pages/HomeBannerFormPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductFormPage } from './pages/ProductFormPage'
@@ -163,6 +164,28 @@ const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig): Promis
       },
     })
   }
+  if (url.includes('/admin/products')) {
+    return ok({
+      products: [
+        {
+          id: 'prd-milk',
+          categoryId: 'cat-dairy',
+          sku: 'MLK-1L',
+          nameEn: 'Toned milk',
+          nameHi: 'टोन्ड दूध',
+          unit: '1 L',
+          pricePaise: 5800,
+          mrpPaise: 6200,
+          stockQuantity: 40,
+          lowStockThreshold: 5,
+          imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=400&q=80',
+          inStock: true,
+          isActive: true,
+          inventoryStatus: 'IN_STOCK',
+        },
+      ],
+    })
+  }
   if (url.includes('/admin/service-areas/area-jaipur')) {
     return ok({
       serviceArea: {
@@ -290,7 +313,9 @@ const path =
             ? '/catalog-import'
             : screen === 'returns'
               ? '/returns'
-              : '/analysis'
+            : screen === 'home-banner'
+            ? '/home-banners/new'
+            : '/analysis'
 
 function FillCatalogImport() {
   useEffect(() => {
@@ -372,6 +397,23 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/catalog-import" element={<CatalogImportPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
+              <Route
+                path="/home-banners/new"
+                element={
+                  <HomeBannerForm
+                    initial={{
+                      id: 'ban_demo',
+                      imageUrl: '',
+                      title: '',
+                      subtitle: '',
+                      linkType: 'url',
+                      linkUrl: 'https://example.com/weekly-offer',
+                      sortOrder: 10,
+                      isActive: true,
+                    }}
+                  />
+                }
+              />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>

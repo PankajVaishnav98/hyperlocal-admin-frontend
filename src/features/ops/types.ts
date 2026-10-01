@@ -119,7 +119,7 @@ export type AdminOrder = {
   } | null
 }
 
-export type HomeBannerLinkType = 'none' | 'category' | 'product'
+export type HomeBannerLinkType = 'none' | 'category' | 'product' | 'url'
 
 export type AdminHomeBanner = {
   id: string
@@ -129,6 +129,7 @@ export type AdminHomeBanner = {
   linkType: HomeBannerLinkType
   categoryId?: string
   productId?: string
+  linkUrl?: string
   sortOrder: number
   isActive: boolean
 }
