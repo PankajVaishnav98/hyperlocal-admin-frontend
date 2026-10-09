@@ -24,7 +24,7 @@ export const apiClient = axios.create({
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    'x-hyperlocal-client': 'web',
+    'x-tokri-client': 'web',
   },
 })
 
