@@ -253,6 +253,37 @@ export async function resolveReturn(
   return response.data.data.order
 }
 
+export interface AdminProductReview {
+  id: string
+  productId: string
+  productName: string
+  authorName: string
+  rating: number
+  comment: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function listProductReviews(): Promise<AdminProductReview[]> {
+  const response = await apiClient.get<Envelope<{ reviews: AdminProductReview[] }>>('/admin/reviews')
+  return response.data.data.reviews
+}
+
+export async function updateProductReview(
+  id: string,
+  payload: { rating: number; comment: string },
+): Promise<AdminProductReview> {
+  const response = await apiClient.patch<Envelope<{ review: AdminProductReview }>>(
+    `/admin/reviews/${encodeURIComponent(id)}`,
+    payload,
+  )
+  return response.data.data.review
+}
+
+export async function deleteProductReview(id: string): Promise<void> {
+  await apiClient.delete(`/admin/reviews/${encodeURIComponent(id)}`)
+}
+
 export async function listHomeBanners(): Promise<AdminHomeBanner[]> {
   const response = await apiClient.get<Envelope<{ banners: AdminHomeBanner[] }>>(
     '/admin/home-banners',
@@ -286,6 +317,30 @@ export async function updateHomeBanner(
   return response.data.data.banner
 }
 
+export interface AdminHomeLead {
+  mediaUrl: string
+  isActive: boolean
+  linkType: 'none' | 'category' | 'product' | 'url'
+  categoryId?: string
+  productId?: string
+  linkUrl?: string
+}
+
+export async function getHomeLead(): Promise<AdminHomeLead> {
+  const response = await apiClient.get<Envelope<{ lead: AdminHomeLead }>>('/admin/home-lead')
+  return response.data.data.lead
+}
+
+export async function saveHomeLead(payload: AdminHomeLead): Promise<AdminHomeLead> {
+  const response = await apiClient.put<Envelope<{ lead: AdminHomeLead }>>('/admin/home-lead', payload)
+  return response.data.data.lead
+}
+
+export async function deleteHomeLead(): Promise<AdminHomeLead> {
+  const response = await apiClient.delete<Envelope<{ lead: AdminHomeLead }>>('/admin/home-lead')
+  return response.data.data.lead
+}
+
 export async function disableHomeBanner(id: string): Promise<AdminHomeBanner> {
   const response = await apiClient.delete<Envelope<{ banner: AdminHomeBanner }>>(
     `/admin/home-banners/${encodeURIComponent(id)}`,
@@ -301,7 +356,7 @@ export async function uploadImage(folder: ImageFolder, file: File): Promise<stri
     body,
     {
       params: { folder },
-      timeout: 30_000,
+      timeout: 120_000,
     },
   )
   const imageUrl = response.data.data.image.imageUrl

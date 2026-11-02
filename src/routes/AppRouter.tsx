@@ -9,6 +9,7 @@ import { CategoryFormPage } from '../pages/CategoryFormPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomeBannerFormPage } from '../pages/HomeBannerFormPage'
 import { HomeBannersPage } from '../pages/HomeBannersPage'
+import { HomeLeadPage } from '../pages/HomeLeadPage'
 import { LegalPage } from '../pages/LegalPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -16,6 +17,7 @@ import { OrdersPage } from '../pages/OrdersPage'
 import { OrderDetailPage } from '../pages/OrderDetailPage'
 import { ProductFormPage } from '../pages/ProductFormPage'
 import { ProductsPage } from '../pages/ProductsPage'
+import { ReviewsPage } from '../pages/ReviewsPage'
 import { ReturnsPage } from '../pages/ReturnsPage'
 import { ServiceAreaFormPage } from '../pages/ServiceAreaFormPage'
 import { ServiceAreasPage } from '../pages/ServiceAreasPage'
@@ -37,9 +39,11 @@ export function AppRouter() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:productId" element={<ProductFormPage />} />
+          <Route path="reviews" element={<ReviewsPage />} />
           <Route path="home-banners" element={<HomeBannersPage />} />
           <Route path="home-banners/new" element={<HomeBannerFormPage />} />
           <Route path="home-banners/:bannerId" element={<HomeBannerFormPage />} />
+          <Route path="home-lead" element={<HomeLeadPage />} />
           <Route path="service-areas" element={<ServiceAreasPage />} />
           <Route path="service-areas/new" element={<ServiceAreaFormPage />} />
           <Route path="service-areas/:serviceAreaId" element={<ServiceAreaFormPage />} />
