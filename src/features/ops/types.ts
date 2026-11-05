@@ -42,6 +42,8 @@ export type AdminProduct = {
   costPaise: number | null
   imageUrl: string | null
   inStock: boolean
+  returnable: boolean
+  returnWindowMinutes: number
   isActive: boolean
   inventoryStatus: InventoryStatus
 }

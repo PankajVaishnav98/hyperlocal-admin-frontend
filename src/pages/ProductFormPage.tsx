@@ -31,6 +31,8 @@ const schema = z.object({
   stockQuantity: z.coerce.number().int().min(0),
   lowStockThreshold: z.coerce.number().int().min(0),
   inStock: z.boolean(),
+  returnable: z.boolean(),
+  returnWindowMinutes: z.coerce.number().int().min(1, 'Enter at least 1 minute').max(10080),
   isActive: z.boolean(),
   costRupees: z.string(),
   imageUrl: z
@@ -51,6 +53,8 @@ function fieldsFrom(product?: AdminProduct) {
     stockQuantity: String(product?.stockQuantity ?? 0),
     lowStockThreshold: String(product?.lowStockThreshold ?? 5),
     inStock: product?.inStock ?? true,
+    returnable: product?.returnable ?? false,
+    returnWindowMinutes: String(product?.returnWindowMinutes ?? 30),
     isActive: product?.isActive ?? true,
     costRupees: product?.costPaise != null ? (product.costPaise / 100).toFixed(2) : '',
     imageUrl: product?.imageUrl ?? '',
@@ -115,6 +119,8 @@ function ProductForm({
         stockQuantity: parsed.data.stockQuantity,
         lowStockThreshold: parsed.data.lowStockThreshold,
         inStock: parsed.data.inStock,
+        returnable: parsed.data.returnable,
+        returnWindowMinutes: parsed.data.returnable ? parsed.data.returnWindowMinutes : 30,
         isActive: parsed.data.isActive,
         costPaise,
       }
@@ -187,7 +193,13 @@ function ProductForm({
             <Input label="SKU" value={values.sku} error={errors.sku} onChange={set('sku')} />
             <Input label="Unit" value={values.unit} error={errors.unit} helperText="For example 1 L or 500 g" onChange={set('unit')} />
           </div>
-          <Textarea label="Details" value={values.description} error={errors.description} onChange={set('description')} />
+          <Textarea
+            label="Product details (optional)"
+            value={values.description}
+            error={errors.description}
+            helperText="Shown on the customer product page. Leave blank if there is nothing extra to say."
+            onChange={set('description')}
+          />
           <div className="grid gap-5 sm:grid-cols-2">
             <Input label="Selling price (₹)" value={values.priceRupees} error={errors.priceRupees} onChange={set('priceRupees')} />
             <Input label="MRP (₹)" value={values.mrpRupees} error={errors.mrpRupees} onChange={set('mrpRupees')} />
@@ -213,6 +225,30 @@ function ProductForm({
             <input type="checkbox" checked={values.inStock} onChange={(event) => setValues((current) => ({ ...current, inStock: event.target.checked }))} />
             Available to sell
           </label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
+            <input
+              type="checkbox"
+              checked={values.returnable}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  returnable: event.target.checked,
+                  returnWindowMinutes: current.returnWindowMinutes || '30',
+                }))
+              }
+            />
+            This product can be returned
+          </label>
+          {values.returnable ? (
+            <Input
+              label="Return window (minutes)"
+              type="number"
+              value={values.returnWindowMinutes}
+              error={errors.returnWindowMinutes}
+              helperText="Customers see this on the product page. Default is 30 minutes."
+              onChange={set('returnWindowMinutes')}
+            />
+          ) : null}
           <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
             <input type="checkbox" checked={values.isActive} onChange={(event) => setValues((current) => ({ ...current, isActive: event.target.checked }))} />
             Active in the customer shop

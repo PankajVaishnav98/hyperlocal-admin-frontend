@@ -49,5 +49,7 @@ describe('ProductFormPage', () => {
       await screen.findByLabelText('Cost to platform / COGS (₹, optional)'),
     ).toBeInTheDocument()
     expect(screen.getByText(/used for profit, not customer price/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Product details (optional)')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'This product can be returned' })).not.toBeChecked()
   })
 })
