@@ -13,6 +13,8 @@ import type {
   HomeBannerPayload,
   AnalysisReport,
   CatalogImportResult,
+  AdminOffer,
+  OfferPayload,
   ImageFolder,
   OrderStatus,
   PagedList,
@@ -393,6 +395,38 @@ export async function importCatalogWorkbook(file: File): Promise<CatalogImportRe
     { timeout: 60_000 },
   )
   return response.data.data.import
+}
+
+export async function listOffers(): Promise<AdminOffer[]> {
+  const response = await apiClient.get<Envelope<{ offers: AdminOffer[] }>>('/admin/offers')
+  return response.data.data.offers
+}
+
+export async function getOffer(id: string): Promise<AdminOffer> {
+  const response = await apiClient.get<Envelope<{ offer: AdminOffer }>>(
+    `/admin/offers/${encodeURIComponent(id)}`,
+  )
+  return response.data.data.offer
+}
+
+export async function createOffer(payload: OfferPayload): Promise<AdminOffer> {
+  const response = await apiClient.post<Envelope<{ offer: AdminOffer }>>('/admin/offers', payload)
+  return response.data.data.offer
+}
+
+export async function updateOffer(id: string, payload: OfferPayload): Promise<AdminOffer> {
+  const response = await apiClient.patch<Envelope<{ offer: AdminOffer }>>(
+    `/admin/offers/${encodeURIComponent(id)}`,
+    payload,
+  )
+  return response.data.data.offer
+}
+
+export async function disableOffer(id: string): Promise<AdminOffer> {
+  const response = await apiClient.post<Envelope<{ offer: AdminOffer }>>(
+    `/admin/offers/${encodeURIComponent(id)}/disable`,
+  )
+  return response.data.data.offer
 }
 
 export function formatPaise(paise: number): string {

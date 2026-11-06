@@ -33,6 +33,8 @@ vi.mock('../features/ops/api', () => ({
   countOrders: () => Promise.resolve(0),
   getOrder: () => Promise.reject(new Error('not used')),
   listHomeBanners: () => Promise.resolve([]),
+  listOffers: () => Promise.resolve([]),
+  disableOffer: () => Promise.resolve({ id: 'ofr_1', isActive: false }),
   disableHomeBanner: () => Promise.resolve({ id: 'ban_1', isActive: false }),
   listCategories: () =>
     Promise.resolve({
@@ -176,6 +178,20 @@ describe('AppRouter', () => {
     expect(await screen.findByRole('heading', { name: 'Catalog import' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Download template' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Catalog import' })).toBeInTheDocument()
+  })
+
+  it('renders the offers empty state', async () => {
+    renderRouter({
+      path: '/offers',
+      session: {
+        adminId: 'admin-1',
+        displayName: 'Operations Admin',
+        email: 'ops@hyperlocal.test',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Offers' })).toBeInTheDocument()
+    expect(await screen.findByText('No offers yet')).toBeInTheDocument()
   })
 
   it('renders the home banners empty state', async () => {

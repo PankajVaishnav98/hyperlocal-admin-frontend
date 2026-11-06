@@ -188,6 +188,32 @@ export type CatalogImportCounts = {
   failed: number
 }
 
+export type AdminOffer = {
+  id: string
+  title: string
+  scope: 'all' | 'product'
+  productId: string | null
+  productName: string | null
+  kind: 'percent' | 'flat'
+  percent: number | null
+  flatPaise: number | null
+  isActive: boolean
+  startsAt: string | null
+  endsAt: string | null
+}
+
+export type OfferPayload = {
+  title: string
+  scope: 'all' | 'product'
+  productId: string | null
+  kind: 'percent' | 'flat'
+  percent: number | null
+  flatPaise: number | null
+  isActive: boolean
+  startsAt: string | null
+  endsAt: string | null
+}
+
 export type CatalogImportResult = {
   importId: string
   categories: CatalogImportCounts

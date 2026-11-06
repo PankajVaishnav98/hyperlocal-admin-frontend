@@ -19,6 +19,25 @@ import { ImageUploadField } from '../features/ops/ImageUpload'
 import type { AdminProduct } from '../features/ops/types'
 import { ConfirmDialog, PageHeader } from '../features/ops/ui'
 
+const MAX_RETURN_MINUTES = 10_080
+type ReturnUnit = 'minutes' | 'hours' | 'days'
+
+function windowFromMinutes(total: number): { amount: string; unit: ReturnUnit } {
+  if (total > 0 && total % 1_440 === 0) {
+    return { amount: String(total / 1_440), unit: 'days' }
+  }
+  if (total > 0 && total % 60 === 0 && total >= 60) {
+    return { amount: String(total / 60), unit: 'hours' }
+  }
+  return { amount: String(total > 0 ? total : 30), unit: 'minutes' }
+}
+
+function minutesFromWindow(amount: number, unit: ReturnUnit): number {
+  if (unit === 'days') return amount * 1_440
+  if (unit === 'hours') return amount * 60
+  return amount
+}
+
 const schema = z.object({
   categoryId: z.string().min(1, 'Choose a category'),
   sku: z.string().trim().toUpperCase().regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Uppercase SKU').min(3),
@@ -32,7 +51,8 @@ const schema = z.object({
   lowStockThreshold: z.coerce.number().int().min(0),
   inStock: z.boolean(),
   returnable: z.boolean(),
-  returnWindowMinutes: z.coerce.number().int().min(1, 'Enter at least 1 minute').max(10080),
+  returnAmount: z.coerce.number().int().min(1, 'Enter at least 1'),
+  returnUnit: z.enum(['minutes', 'hours', 'days']),
   isActive: z.boolean(),
   costRupees: z.string(),
   imageUrl: z
@@ -54,7 +74,10 @@ function fieldsFrom(product?: AdminProduct) {
     lowStockThreshold: String(product?.lowStockThreshold ?? 5),
     inStock: product?.inStock ?? true,
     returnable: product?.returnable ?? false,
-    returnWindowMinutes: String(product?.returnWindowMinutes ?? 30),
+    ...(() => {
+      const window = windowFromMinutes(product?.returnWindowMinutes ?? 30)
+      return { returnAmount: window.amount, returnUnit: window.unit }
+    })(),
     isActive: product?.isActive ?? true,
     costRupees: product?.costPaise != null ? (product.costPaise / 100).toFixed(2) : '',
     imageUrl: product?.imageUrl ?? '',
@@ -106,6 +129,11 @@ function ProductForm({
           throw new Error('validation')
         }
       }
+      const returnWindowMinutes = minutesFromWindow(parsed.data.returnAmount, parsed.data.returnUnit)
+      if (parsed.data.returnable && returnWindowMinutes > MAX_RETURN_MINUTES) {
+        setErrors({ returnAmount: 'Return window cannot be longer than 7 days' })
+        throw new Error('validation')
+      }
       setErrors({})
       const payload = {
         categoryId: parsed.data.categoryId,
@@ -120,7 +148,7 @@ function ProductForm({
         lowStockThreshold: parsed.data.lowStockThreshold,
         inStock: parsed.data.inStock,
         returnable: parsed.data.returnable,
-        returnWindowMinutes: parsed.data.returnable ? parsed.data.returnWindowMinutes : 30,
+        returnWindowMinutes: parsed.data.returnable ? returnWindowMinutes : 30,
         isActive: parsed.data.isActive,
         costPaise,
       }
@@ -233,21 +261,42 @@ function ProductForm({
                 setValues((current) => ({
                   ...current,
                   returnable: event.target.checked,
-                  returnWindowMinutes: current.returnWindowMinutes || '30',
+                  returnAmount: current.returnAmount || '30',
+                  returnUnit: current.returnUnit || 'minutes',
                 }))
               }
             />
             This product can be returned
           </label>
           {values.returnable ? (
-            <Input
-              label="Return window (minutes)"
-              type="number"
-              value={values.returnWindowMinutes}
-              error={errors.returnWindowMinutes}
-              helperText="Customers see this on the product page. Default is 30 minutes."
-              onChange={set('returnWindowMinutes')}
-            />
+            <div className="grid gap-5 sm:grid-cols-[1fr_180px]">
+              <Input
+                label="Return window"
+                type="number"
+                min={1}
+                value={values.returnAmount}
+                error={errors.returnAmount}
+                helperText="How long after delivery the customer can return this product. Use 1 day for a full day. Maximum is 7 days."
+                onChange={set('returnAmount')}
+              />
+              <label className="block text-sm font-semibold text-ink-800">
+                Unit
+                <select
+                  className="mt-2 h-11 w-full rounded-xl border border-ink-200 bg-white px-3 text-sm"
+                  value={values.returnUnit}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      returnUnit: event.target.value as ReturnUnit,
+                    }))
+                  }
+                >
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                </select>
+              </label>
+            </div>
           ) : null}
           <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
             <input type="checkbox" checked={values.isActive} onChange={(event) => setValues((current) => ({ ...current, isActive: event.target.checked }))} />

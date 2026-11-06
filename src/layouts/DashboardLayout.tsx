@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  BadgePercent,
   BarChart3,
   FileSpreadsheet,
   ImagePlus,
@@ -32,6 +33,7 @@ const links = [
   { to: '/analysis', label: 'Analysis', icon: BarChart3 },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/offers', label: 'Offers', icon: BadgePercent },
   { to: '/reviews', label: 'Reviews', icon: MessageSquareText },
   { to: '/catalog-import', label: 'Catalog import', icon: FileSpreadsheet },
   { to: '/home-banners', label: 'Home banners', icon: ImagePlus },

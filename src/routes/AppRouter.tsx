@@ -13,6 +13,8 @@ import { HomeLeadPage } from '../pages/HomeLeadPage'
 import { LegalPage } from '../pages/LegalPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { OfferFormPage } from '../pages/OfferFormPage'
+import { OffersPage } from '../pages/OffersPage'
 import { OrdersPage } from '../pages/OrdersPage'
 import { OrderDetailPage } from '../pages/OrderDetailPage'
 import { ProductFormPage } from '../pages/ProductFormPage'
@@ -39,6 +41,9 @@ export function AppRouter() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:productId" element={<ProductFormPage />} />
+          <Route path="offers" element={<OffersPage />} />
+          <Route path="offers/new" element={<OfferFormPage />} />
+          <Route path="offers/:offerId" element={<OfferFormPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="home-banners" element={<HomeBannersPage />} />
           <Route path="home-banners/new" element={<HomeBannerFormPage />} />
