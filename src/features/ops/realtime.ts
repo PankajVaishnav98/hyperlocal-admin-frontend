@@ -2,8 +2,10 @@ export const ADMIN_SOCKET_PATH = '/api/v1/socket.io'
 
 export const ORDER_SOCKET_EVENTS = [
   'order:placed',
+  'order:under_review',
   'order:accepted',
   'order:cancelled',
+  'order:rejected',
   'order:completed',
   'order:return_requested',
   'order:return_accepted',
@@ -98,6 +100,7 @@ export function startAdminOrderSocket(input: {
         if (
           event === 'order:accepted' ||
           event === 'order:cancelled' ||
+          event === 'order:rejected' ||
           event === 'order:completed'
         ) {
           input.onOrderResolved?.(payload)

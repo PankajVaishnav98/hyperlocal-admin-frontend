@@ -6,6 +6,7 @@ export const ORDER_ALERT_LAST_PLAY_STORAGE_KEY = 'hyperlocal.admin.orderAlert.la
 export const ORDER_ALERT_RESOLVED_EVENTS = [
   'order:accepted',
   'order:cancelled',
+  'order:rejected',
   'order:completed',
 ] as const
 

@@ -6,6 +6,7 @@ import { Badge, Button } from '../components/ui/Primitives'
 import { ErrorState } from '../components/states/SystemStates'
 import { ApiError } from '../api/errors'
 import { formatPaise, getOrder, resolveReturn, transitionOrder } from '../features/ops/api'
+import { OrderPhotoGallery } from '../features/ops/OrderPhotoGallery'
 import { mapsDirectionsUrl } from '../features/ops/mapsDirections'
 import type { AdminOrderAction, AdminReturnAction, OrderStatus } from '../features/ops/types'
 import { ConfirmDialog, PageHeader, QueryGate } from '../features/ops/ui'
@@ -14,12 +15,14 @@ import { returnActionCopy } from './ReturnsPage'
 function statusTone(status: OrderStatus) {
   switch (status) {
     case 'placed':
+    case 'under_review':
       return 'info'
     case 'accepted':
       return 'warning'
     case 'completed':
       return 'success'
     case 'cancelled':
+    case 'rejected':
       return 'neutral'
   }
 }
@@ -28,11 +31,14 @@ function statusLabel(status: string) {
   switch (status) {
     case 'placed':
       return 'Placed'
+    case 'under_review':
+      return 'Under Review'
     case 'accepted':
       return 'Accepted'
     case 'completed':
       return 'Delivered'
     case 'cancelled':
+    case 'rejected':
       return 'Rejected'
     default:
       return status.replaceAll('_', ' ')
@@ -43,6 +49,11 @@ const actionCopy: Record<
   AdminOrderAction,
   { title: string; description: string; confirmLabel: string }
 > = {
+  review: {
+    title: 'Start review?',
+    description: 'The photo order moves to Under Review. No catalog total is created.',
+    confirmLabel: 'Start Review',
+  },
   accept: {
     title: 'Accept this order?',
     description: 'The customer timeline will show Accepted. Delivery assignment is not in this version.',
@@ -88,6 +99,7 @@ export function OrderDetailPage() {
   })
 
   const order = query.data
+  const photoOrder = order?.orderType === 'PHOTO'
 
   return (
     <div className="space-y-6">
@@ -112,8 +124,13 @@ export function OrderDetailPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-ink-100 bg-white p-5">
               <h2 className="font-semibold text-ink-950">Payment and status</h2>
+              {photoOrder ? (
+                <p className="mt-2 text-sm font-semibold text-ink-950">Photo Se Order</p>
+              ) : null}
               <p className="mt-2 text-sm text-ink-600">
-                {formatPaise(order.pricing.grandTotalPaise)} cash on delivery
+                {photoOrder || !order.pricing
+                  ? 'No catalog total. The shop has not priced this photo order.'
+                  : `${formatPaise(order.pricing.grandTotalPaise)} cash on delivery`}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge tone={statusTone(order.status)}>{statusLabel(order.status)}</Badge>
@@ -133,7 +150,7 @@ export function OrderDetailPage() {
                   </li>
                 ))}
               </ol>
-              {order.returnRequest ? (
+              {!photoOrder && order.returnRequest ? (
                 <div className="mt-4 rounded-xl border border-ink-100 bg-ink-50 p-3">
                   <p className="text-sm font-semibold text-ink-950">
                     {order.returnRequest.status === 'completed'
@@ -198,7 +215,52 @@ export function OrderDetailPage() {
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
-                {order.status === 'placed' ? (
+                {photoOrder && order.status === 'placed' ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      transition.reset()
+                      setPendingAction('review')
+                    }}
+                  >
+                    Start Review
+                  </Button>
+                ) : null}
+                {photoOrder && order.status === 'under_review' ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      transition.reset()
+                      setPendingAction('accept')
+                    }}
+                  >
+                    Accept Order
+                  </Button>
+                ) : null}
+                {photoOrder && order.status === 'accepted' ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      transition.reset()
+                      setPendingAction('deliver')
+                    }}
+                  >
+                    Mark delivered
+                  </Button>
+                ) : null}
+                {photoOrder && (order.status === 'placed' || order.status === 'under_review') ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => {
+                      transition.reset()
+                      setPendingAction('reject')
+                    }}
+                  >
+                    Reject Order
+                  </Button>
+                ) : null}
+                {!photoOrder && order.status === 'placed' ? (
                   <>
                     <Button
                       type="button"
@@ -221,7 +283,7 @@ export function OrderDetailPage() {
                     </Button>
                   </>
                 ) : null}
-                {order.status === 'accepted' ? (
+                {!photoOrder && order.status === 'accepted' ? (
                   <>
                     <Button
                       type="button"
@@ -263,21 +325,27 @@ export function OrderDetailPage() {
               </a>
             </section>
             <section className="rounded-2xl border border-ink-100 bg-white p-5 lg:col-span-2">
-              <h2 className="font-semibold text-ink-950">Items</h2>
-              <ul className="mt-3 space-y-2 text-sm text-ink-700">
-                {order.items.map((item) => (
-                  <li key={item.productId} className="flex justify-between">
-                    <span>
-                      {item.nameEn} × {item.quantity}
-                    </span>
-                    <span>{formatPaise(item.lineTotalPaise)}</span>
+              <h2 className="font-semibold text-ink-950">{photoOrder ? 'Photos' : 'Items'}</h2>
+              {photoOrder ? (
+                <div className="mt-3">
+                  <OrderPhotoGallery orderId={order.id} photos={order.photos ?? []} />
+                </div>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm text-ink-700">
+                  {order.items.map((item) => (
+                    <li key={item.productId} className="flex justify-between">
+                      <span>
+                        {item.nameEn} × {item.quantity}
+                      </span>
+                      <span>{formatPaise(item.lineTotalPaise)}</span>
+                    </li>
+                  ))}
+                  <li className="flex justify-between">
+                    <span>Delivery</span>
+                    <span>{order.pricing ? formatPaise(order.pricing.deliveryFeePaise) : 'Not priced'}</span>
                   </li>
-                ))}
-                <li className="flex justify-between">
-                  <span>Delivery</span>
-                  <span>{formatPaise(order.pricing.deliveryFeePaise)}</span>
-                </li>
-              </ul>
+                </ul>
+              )}
             </section>
           </div>
         ) : (
@@ -286,9 +354,19 @@ export function OrderDetailPage() {
       </QueryGate>
       {pendingAction ? (
         <ConfirmDialog
-          title={actionCopy[pendingAction].title}
-          description={actionCopy[pendingAction].description}
-          confirmLabel={actionCopy[pendingAction].confirmLabel}
+          title={
+            photoOrder && pendingAction === 'reject'
+              ? 'Reject this photo order?'
+              : actionCopy[pendingAction].title
+          }
+          description={
+            photoOrder && pendingAction === 'reject'
+              ? 'The photo order will be marked Rejected. No stock is restored and no payment is changed.'
+              : actionCopy[pendingAction].description
+          }
+          confirmLabel={
+            photoOrder && pendingAction === 'reject' ? 'Reject Order' : actionCopy[pendingAction].confirmLabel
+          }
           loading={transition.isPending}
           error={
             transition.error instanceof ApiError

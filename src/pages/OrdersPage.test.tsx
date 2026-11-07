@@ -67,4 +67,55 @@ describe('OrdersPage', () => {
     await user.type(screen.getByLabelText('Search orders'), 'no-such')
     expect(await screen.findByText('No matching orders')).toBeInTheDocument()
   })
+
+  it('filters the list to Photo Se Order tickets', async () => {
+    const meta = {
+      page: 1,
+      limit: 25,
+      total: 2,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    }
+    const photo = {
+      ...ticket,
+      id: 'ord_photo',
+      orderNumber: 'HL-PHOTO-1',
+      orderType: 'PHOTO',
+      items: [],
+      photos: [{ imageId: 'pht_1', mimeType: 'image/jpeg', bytes: 10 }],
+      pricing: null,
+    }
+    listOrdersMock.mockImplementation(async (query?: { orderType?: string }) => ({
+      items: query?.orderType === 'PHOTO' ? [photo] : [ticket, photo],
+      meta: {
+        ...meta,
+        total: query?.orderType === 'PHOTO' ? 1 : 2,
+      },
+    }))
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const user = userEvent.setup()
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <OrdersPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('HL-20260924-184221')).toBeInTheDocument()
+    expect(screen.getByText('HL-PHOTO-1')).toBeInTheDocument()
+    expect(screen.getByText('Photo Se Order · 1 photo')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Photo Orders' }))
+    expect(await screen.findByText('HL-PHOTO-1')).toBeInTheDocument()
+    expect(screen.queryByText('HL-20260924-184221')).not.toBeInTheDocument()
+    expect(screen.getByText('Not priced')).toBeInTheDocument()
+    expect(listOrdersMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ orderType: 'PHOTO', page: 1, limit: 25 }),
+    )
+    expect(screen.getByRole('option', { name: 'Under Review' })).toBeInTheDocument()
+  })
 })

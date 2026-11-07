@@ -1,4 +1,5 @@
 import { apiClient } from '../../api/client'
+import { ApiError } from '../../api/errors'
 import type {
   AdminCategory,
   AdminProduct,
@@ -17,6 +18,7 @@ import type {
   OfferPayload,
   ImageFolder,
   OrderStatus,
+  OrderType,
   PagedList,
   PaginationMeta,
 } from './types'
@@ -196,6 +198,7 @@ export async function disableServiceArea(id: string): Promise<ServiceArea> {
 
 export async function listOrders(query?: {
   status?: OrderStatus
+  orderType?: OrderType
   q?: string
   page?: number
   limit?: number
@@ -209,6 +212,7 @@ export async function listOrders(query?: {
       limit,
       ...(query?.q ? { q: query.q } : {}),
       ...(query?.status ? { status: query.status } : {}),
+      ...(query?.orderType ? { orderType: query.orderType } : {}),
       ...(query?.returnRequested ? { returnRequested: 'true' } : {}),
     },
   })
@@ -224,6 +228,28 @@ export async function countOrders(status?: OrderStatus): Promise<number> {
     },
   })
   return response.data.meta?.total ?? response.data.data.orders.length
+}
+
+const PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+export async function getOrderPhoto(orderId: string, imageId: string): Promise<Blob> {
+  const response = await apiClient.get<ArrayBuffer>(
+    `/admin/orders/${encodeURIComponent(orderId)}/photos/${encodeURIComponent(imageId)}`,
+    {
+      responseType: 'arraybuffer',
+      timeout: 30_000,
+    },
+  )
+  const header = response.headers['content-type']
+  const raw = typeof header === 'string' ? header : ''
+  const mimeType = raw.split(';')[0]?.trim().toLowerCase() ?? ''
+  if (!PHOTO_MIME_TYPES.has(mimeType)) {
+    throw new ApiError({
+      message: 'The photo could not be shown.',
+      code: 'INVALID_API_RESPONSE',
+    })
+  }
+  return new Blob([response.data], { type: mimeType })
 }
 
 export async function getOrder(id: string): Promise<AdminOrder> {

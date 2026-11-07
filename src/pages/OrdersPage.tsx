@@ -12,12 +12,14 @@ import { useResettingPage } from '../utils/useResettingPage'
 function statusTone(status: OrderStatus) {
   switch (status) {
     case 'placed':
+    case 'under_review':
       return 'info'
     case 'accepted':
       return 'warning'
     case 'completed':
       return 'success'
     case 'cancelled':
+    case 'rejected':
       return 'neutral'
   }
 }
@@ -26,11 +28,14 @@ function statusLabel(status: OrderStatus) {
   switch (status) {
     case 'placed':
       return 'Placed'
+    case 'under_review':
+      return 'Under Review'
     case 'accepted':
       return 'Accepted'
     case 'completed':
       return 'Delivered'
     case 'cancelled':
+    case 'rejected':
       return 'Rejected'
   }
 }
@@ -38,17 +43,19 @@ function statusLabel(status: OrderStatus) {
 export function OrdersPage() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<'all' | OrderStatus>('all')
+  const [kind, setKind] = useState<'all' | 'photo'>('all')
   const debouncedQ = useDebouncedValue(q)
-  const hasFilters = Boolean(q.trim() || status !== 'all')
-  const [page, setPage] = useResettingPage(`${debouncedQ}|${status}`)
+  const hasFilters = Boolean(q.trim() || status !== 'all' || kind === 'photo')
+  const [page, setPage] = useResettingPage(`${debouncedQ}|${status}|${kind}`)
   const query = useQuery({
-    queryKey: ['admin', 'orders', page, debouncedQ, status],
+    queryKey: ['admin', 'orders', page, debouncedQ, status, kind],
     queryFn: () =>
       listOrders({
         page,
         limit: ADMIN_LIST_PAGE_SIZE,
         ...(debouncedQ.trim() ? { q: debouncedQ.trim() } : {}),
         ...(status === 'all' ? {} : { status }),
+        ...(kind === 'photo' ? { orderType: 'PHOTO' as const } : {}),
       }),
     placeholderData: keepPreviousData,
   })
@@ -60,6 +67,26 @@ export function OrdersPage() {
         title="Orders"
         description="Cash-on-delivery tickets. Accept, reject, or mark delivered from the order page. Live rider GPS is not available."
       />
+      <div className="flex gap-2" role="tablist" aria-label="Order type">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={kind === 'all'}
+          className="h-10 rounded-xl border border-ink-200 px-4 text-sm font-semibold"
+          onClick={() => setKind('all')}
+        >
+          All orders
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={kind === 'photo'}
+          className="h-10 rounded-xl border border-ink-200 px-4 text-sm font-semibold"
+          onClick={() => setKind('photo')}
+        >
+          Photo Orders
+        </button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           value={q}
@@ -76,9 +103,11 @@ export function OrdersPage() {
         >
           <option value="all">All statuses</option>
           <option value="placed">Placed</option>
+          <option value="under_review">Under Review</option>
           <option value="accepted">Accepted</option>
           <option value="completed">Delivered</option>
           <option value="cancelled">Rejected</option>
+          <option value="rejected">Photo rejected</option>
         </select>
       </div>
       <QueryGate
@@ -86,11 +115,15 @@ export function OrdersPage() {
         error={query.error}
         onRetry={() => void query.refetch()}
         isEmpty={(meta?.total ?? 0) === 0}
-        emptyTitle={hasFilters ? 'No matching orders' : 'No COD orders yet'}
+        emptyTitle={
+          kind === 'photo' ? 'No photo orders' : hasFilters ? 'No matching orders' : 'No COD orders yet'
+        }
         emptyDescription={
-          hasFilters
-            ? 'Try a different search or status filter.'
-            : 'When a customer places a cash-on-delivery order, it will appear here.'
+          kind === 'photo'
+            ? 'Photo Se Order tickets appear here after a customer sends photos.'
+            : hasFilters
+              ? 'Try a different search or status filter.'
+              : 'When a customer places a cash-on-delivery order, it will appear here.'
         }
       >
         <div className="space-y-4">
@@ -101,10 +134,18 @@ export function OrdersPage() {
                   <Link className="font-semibold text-ink-950 hover:underline" to={`/orders/${order.id}`}>
                     {order.orderNumber}
                   </Link>
-                  <p className="text-xs text-ink-500">{order.items.length} items · COD</p>
+                  <p className="text-xs text-ink-500">
+                    {order.orderType === 'PHOTO'
+                      ? `Photo Se Order · ${(order.photos?.length ?? 0) === 1 ? '1 photo' : `${order.photos?.length ?? 0} photos`}`
+                      : `${order.items.length} items · COD`}
+                  </p>
                 </td>
                 <td className="px-4 py-3">{order.customerMobile}</td>
-                <td className="px-4 py-3">{formatPaise(order.pricing.grandTotalPaise)}</td>
+                <td className="px-4 py-3">
+                  {order.orderType === 'PHOTO' || !order.pricing
+                    ? 'Not priced'
+                    : formatPaise(order.pricing.grandTotalPaise)}
+                </td>
                 <td className="px-4 py-3">
                   <Badge tone={statusTone(order.status)}>{statusLabel(order.status)}</Badge>
                 </td>

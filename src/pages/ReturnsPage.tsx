@@ -106,7 +106,7 @@ export function ReturnsPage() {
                       {order.orderNumber}
                     </Link>
                     <p className="text-xs text-ink-500">
-                      {formatPaise(order.pricing.grandTotalPaise)} · COD
+                      {order.pricing ? `${formatPaise(order.pricing.grandTotalPaise)} · COD` : 'Not priced · COD'}
                     </p>
                   </td>
                   <td className="px-4 py-3">{order.customerMobile}</td>

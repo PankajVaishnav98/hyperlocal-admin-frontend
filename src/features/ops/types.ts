@@ -70,16 +70,25 @@ export type ServiceAreaPayload = {
   centerLongitude?: number | null
 }
 
-export type OrderStatus = 'placed' | 'accepted' | 'cancelled' | 'completed'
-export type AdminOrderAction = 'accept' | 'reject' | 'deliver'
+export type OrderStatus = 'placed' | 'under_review' | 'accepted' | 'cancelled' | 'rejected' | 'completed'
+export type OrderType = 'REGULAR' | 'PHOTO'
+export type AdminOrderAction = 'review' | 'accept' | 'reject' | 'deliver'
 export type AdminReturnAction = 'accept' | 'complete' | 'reject'
 export type ReturnRequestStatus = 'return_requested' | 'accepted' | 'completed' | 'rejected'
+
+export type AdminOrderPhoto = {
+  imageId: string
+  mimeType: string
+  bytes: number
+}
 
 export type AdminOrder = {
   id: string
   orderNumber: string
+  orderType?: OrderType
   status: OrderStatus
   customerMobile: string
+  photos?: AdminOrderPhoto[]
   items: Array<{
     productId: string
     nameEn: string
@@ -103,7 +112,7 @@ export type AdminOrder = {
     itemsPaise: number
     deliveryFeePaise: number
     grandTotalPaise: number
-  }
+  } | null
   payment: {
     method: 'cod'
     status: 'pending'
